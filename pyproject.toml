@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scm-chainguard"
+version = "0.1.0"
+description = "Manage Chrome-trusted CA certificates in Palo Alto Strata Cloud Manager"
+requires-python = ">=3.11"
+dependencies = [
+    "typer[all]>=0.9",
+    "requests>=2.31",
+    "pyyaml>=6.0",
+    "cryptography>=42.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "responses>=0.25",
+]
+
+[project.scripts]
+scm-chainguard = "scm_chainguard.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
