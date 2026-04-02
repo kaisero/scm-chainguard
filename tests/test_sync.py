@@ -40,9 +40,7 @@ class TestSyncCertificates:
             status=200,
         )
         # PUT ssl settings
-        responses.add(
-            responses.PUT, SSL_SETTINGS_URL, json={"@status": "success"}, status=200
-        )
+        responses.add(responses.PUT, SSL_SETTINGS_URL, json={"@status": "success"}, status=200)
 
         identity = IdentityClient(sample_config, mock_auth)
         security = SecurityClient(sample_config, mock_auth)
@@ -126,9 +124,7 @@ class TestSyncCertificates:
             status=200,
         )
         # PUT ssl settings
-        responses.add(
-            responses.PUT, SSL_SETTINGS_URL, json={"@status": "success"}, status=200
-        )
+        responses.add(responses.PUT, SSL_SETTINGS_URL, json={"@status": "success"}, status=200)
 
         identity = IdentityClient(sample_config, mock_auth)
         security = SecurityClient(sample_config, mock_auth)
@@ -160,9 +156,7 @@ class TestSyncCertificates:
             status=200,
         )
         # PUT ssl settings
-        responses.add(
-            responses.PUT, SSL_SETTINGS_URL, json={"@status": "success"}, status=200
-        )
+        responses.add(responses.PUT, SSL_SETTINGS_URL, json={"@status": "success"}, status=200)
 
         identity = IdentityClient(sample_config, mock_auth)
         security = SecurityClient(sample_config, mock_auth)

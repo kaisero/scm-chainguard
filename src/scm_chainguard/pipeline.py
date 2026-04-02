@@ -37,9 +37,7 @@ def _save_certs(
     return count
 
 
-def run_fetch(
-    config: ScmConfig, include_intermediates: bool = False
-) -> dict[str, Path]:
+def run_fetch(config: ScmConfig, include_intermediates: bool = False) -> dict[str, Path]:
     """Download Chrome-trusted certificates from CCADB and save to output directory."""
     output = Path(config.output_dir)
     roots_dir = output / "roots"
@@ -62,9 +60,7 @@ def run_fetch(
     if include_intermediates:
         intermediates_dir = output / "intermediates"
         int_count = _save_certs(all_certs, CertType.INTERMEDIATE, intermediates_dir)
-        logger.info(
-            "Saved %d intermediate certificates to %s", int_count, intermediates_dir
-        )
+        logger.info("Saved %d intermediate certificates to %s", int_count, intermediates_dir)
         result["intermediates"] = intermediates_dir
 
     return result
@@ -95,15 +91,9 @@ def run_compare(
     results["roots"] = compare_roots(local_roots, scm_predefined, scm_imported)
 
     if include_intermediates:
-        local_intermediates = load_local_certs(
-            output / "intermediates", CertType.INTERMEDIATE
-        )
-        logger.info(
-            "Loaded %d local intermediate certificates.", len(local_intermediates)
-        )
-        results["intermediates"] = compare_intermediates(
-            local_intermediates, scm_imported
-        )
+        local_intermediates = load_local_certs(output / "intermediates", CertType.INTERMEDIATE)
+        logger.info("Loaded %d local intermediate certificates.", len(local_intermediates))
+        results["intermediates"] = compare_intermediates(local_intermediates, scm_imported)
 
     return results
 
@@ -118,18 +108,12 @@ def run_sync(
     identity = IdentityClient(config, auth)
     security = SecurityClient(config, auth)
 
-    comparisons = run_compare(
-        config, include_intermediates, auth=auth, identity=identity
-    )
+    comparisons = run_compare(config, include_intermediates, auth=auth, identity=identity)
 
     results: dict[str, SyncResult] = {}
 
     root_comp = comparisons["roots"]
-    ensure_trusted = [
-        scm_name
-        for _, scm_name in root_comp.present
-        if scm_name.startswith(CERT_PREFIX)
-    ]
+    ensure_trusted = [scm_name for _, scm_name in root_comp.present if scm_name.startswith(CERT_PREFIX)]
     if ensure_trusted:
         logger.info(
             "Found %d already-imported CG_ certificates to ensure in trusted root CA list.",
@@ -138,9 +122,7 @@ def run_sync(
 
     if root_comp.missing or ensure_trusted:
         if root_comp.missing:
-            logger.info(
-                "Syncing %d missing root certificates...", len(root_comp.missing)
-            )
+            logger.info("Syncing %d missing root certificates...", len(root_comp.missing))
         results["roots"] = sync_certificates(
             root_comp.missing,
             identity,
@@ -157,9 +139,7 @@ def run_sync(
     if include_intermediates and "intermediates" in comparisons:
         int_comp = comparisons["intermediates"]
         if int_comp.missing:
-            logger.info(
-                "Syncing %d missing intermediate certificates...", len(int_comp.missing)
-            )
+            logger.info("Syncing %d missing intermediate certificates...", len(int_comp.missing))
             results["intermediates"] = sync_certificates(
                 int_comp.missing,
                 identity,
@@ -214,16 +194,12 @@ def run_cleanup(config: ScmConfig, dry_run: bool = False) -> CleanupResult:
 
     all_certs = identity.list_certificates()
     managed = [c for c in all_certs if c.name.startswith(CERT_PREFIX)]
-    logger.info(
-        "Found %d CG_-managed certificates (of %d total).", len(managed), len(all_certs)
-    )
+    logger.info("Found %d CG_-managed certificates (of %d total).", len(managed), len(all_certs))
 
     expired = []
     for cert in managed:
         if not cert.pem:
-            logger.warning(
-                "No PEM data for cert %r (id=%s), skipping.", cert.name, cert.id
-            )
+            logger.warning("No PEM data for cert %r (id=%s), skipping.", cert.name, cert.id)
             continue
         try:
             if is_cert_expired(cert.pem):

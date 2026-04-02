@@ -113,10 +113,7 @@ def compare(
 
     for label, comp in results.items():
         typer.echo(f"\n{'=' * 60}")
-        typer.echo(
-            f"{label.upper()}: {len(comp.present)} present, "
-            f"{len(comp.missing)} missing (of {comp.total_local})"
-        )
+        typer.echo(f"{label.upper()}: {len(comp.present)} present, {len(comp.missing)} missing (of {comp.total_local})")
         typer.echo(f"{'=' * 60}")
 
         for cert, scm_name in sorted(comp.present, key=lambda x: x[0].common_name):
@@ -152,16 +149,9 @@ def sync(
 
     for label, sr in results.items():
         prefix = "[DRY-RUN] " if sr.dry_run else ""
-        typer.echo(
-            f"\n{label.upper()} sync: "
-            f"{prefix}{len(sr.imported)} imported, "
-            f"{len(sr.skipped)} skipped, "
-            f"{len(sr.failed)} failed"
-        )
+        typer.echo(f"\n{label.upper()} sync: {prefix}{len(sr.imported)} imported, {len(sr.skipped)} skipped, {len(sr.failed)} failed")
         if sr.trusted_roots_added:
-            typer.echo(
-                f"  {prefix}{len(sr.trusted_roots_added)} added to trusted root CA list"
-            )
+            typer.echo(f"  {prefix}{len(sr.trusted_roots_added)} added to trusted root CA list")
         for name, error in sr.failed:
             typer.echo(f"  FAILED: {name} — {error}", err=True)
 
@@ -191,12 +181,7 @@ def cleanup(
         typer.echo("No expired CG_-managed certificates found.")
         return
 
-    typer.echo(
-        f"\n{prefix}Cleanup: "
-        f"{len(result.deleted)} deleted, "
-        f"{len(result.removed_from_trusted)} removed from trusted root CA list, "
-        f"{len(result.failed)} failed"
-    )
+    typer.echo(f"\n{prefix}Cleanup: {len(result.deleted)} deleted, {len(result.removed_from_trusted)} removed from trusted root CA list, {len(result.failed)} failed")
     for name in result.deleted:
         typer.echo(f"  {prefix}DELETED: {name}")
     for name, error in result.failed:
@@ -231,12 +216,7 @@ def run(
     sync_results = result.get("sync", {})
     for label, sr in sync_results.items():
         prefix = "[DRY-RUN] " if sr.dry_run else ""
-        typer.echo(
-            f"\n{label.upper()}: "
-            f"{prefix}{len(sr.imported)} imported, "
-            f"{len(sr.skipped)} skipped, "
-            f"{len(sr.failed)} failed"
-        )
+        typer.echo(f"\n{label.upper()}: {prefix}{len(sr.imported)} imported, {len(sr.skipped)} skipped, {len(sr.failed)} failed")
 
     total_failed = sum(len(sr.failed) for sr in sync_results.values())
     if total_failed:

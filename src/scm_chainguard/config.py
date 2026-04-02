@@ -74,10 +74,7 @@ def load_config(config_path: Path | None = None) -> ScmConfig:
     if missing:
         fields = ", ".join(sorted(missing))
         env_vars = ", ".join(env for env, field in _ENV_MAP.items() if field in missing)
-        raise ConfigError(
-            f"Missing required configuration: {fields}. "
-            f"Set environment variables ({env_vars}) or provide a config file."
-        )
+        raise ConfigError(f"Missing required configuration: {fields}. Set environment variables ({env_vars}) or provide a config file.")
 
     return ScmConfig(**values)
 

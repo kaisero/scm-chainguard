@@ -68,9 +68,7 @@ def sync_certificates(
             continue
 
         try:
-            identity_client.import_certificate(
-                name, cert.pem, folder=config.cert_folder
-            )
+            identity_client.import_certificate(name, cert.pem, folder=config.cert_folder)
             audit.info(
                 "AUDIT: IMPORT cert=%r folder=%r status=success",
                 name,
@@ -78,20 +76,14 @@ def sync_certificates(
             )
             result.imported.append(name)
         except ConflictError:
-            audit.info(
-                "AUDIT: IMPORT cert=%r status=skipped reason=already_exists", name
-            )
+            audit.info("AUDIT: IMPORT cert=%r status=skipped reason=already_exists", name)
             result.skipped.append(name)
         except CertificateImportError as e:
             if any(skip in str(e) for skip in SKIP_ERRORS):
-                audit.info(
-                    "AUDIT: IMPORT cert=%r status=skipped reason=%r", name, str(e)
-                )
+                audit.info("AUDIT: IMPORT cert=%r status=skipped reason=%r", name, str(e))
                 result.skipped.append(name)
             else:
-                audit.warning(
-                    "AUDIT: IMPORT cert=%r status=failed error=%r", name, str(e)
-                )
+                audit.warning("AUDIT: IMPORT cert=%r status=failed error=%r", name, str(e))
                 result.failed.append((name, str(e)))
 
         if not dry_run and i % PROGRESS_REPORT_INTERVAL == 0:

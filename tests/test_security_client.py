@@ -33,9 +33,7 @@ class TestGetSslDecryptionSettings:
 
     @responses.activate
     def test_returns_none_when_empty(self, sample_config, mock_auth):
-        responses.add(
-            responses.GET, SSL_SETTINGS_URL, json={"data": [], "total": 0}, status=200
-        )
+        responses.add(responses.GET, SSL_SETTINGS_URL, json={"data": [], "total": 0}, status=200)
         client = SecurityClient(sample_config, mock_auth)
         assert client.get_ssl_decryption_settings() is None
 
@@ -53,9 +51,7 @@ class TestAddTrustedRootCas:
     @responses.activate
     def test_adds_new_certs(self, sample_config, mock_auth):
         responses.add(responses.GET, SSL_SETTINGS_URL, json=SAMPLE_SETTINGS, status=200)
-        responses.add(
-            responses.PUT, SSL_SETTINGS_URL, json={"@status": "success"}, status=200
-        )
+        responses.add(responses.PUT, SSL_SETTINGS_URL, json={"@status": "success"}, status=200)
         client = SecurityClient(sample_config, mock_auth)
         added = client.add_trusted_root_cas(["new-cert-1", "new-cert-2"])
         assert set(added) == {"new-cert-1", "new-cert-2"}
@@ -112,9 +108,7 @@ class TestRemoveTrustedRootCas:
     @responses.activate
     def test_removes_certs(self, sample_config, mock_auth):
         responses.add(responses.GET, SSL_SETTINGS_URL, json=SAMPLE_SETTINGS, status=200)
-        responses.add(
-            responses.PUT, SSL_SETTINGS_URL, json={"@status": "success"}, status=200
-        )
+        responses.add(responses.PUT, SSL_SETTINGS_URL, json={"@status": "success"}, status=200)
         client = SecurityClient(sample_config, mock_auth)
         removed = client.remove_trusted_root_cas(["existing-cert"])
         assert removed == ["existing-cert"]

@@ -14,9 +14,7 @@ def extract_error_message(resp: requests.Response) -> str:
         if errors:
             error = errors[0]
             details = error.get("details", {})
-            detail_errors = (
-                details.get("errors", []) if isinstance(details, dict) else []
-            )
+            detail_errors = details.get("errors", []) if isinstance(details, dict) else []
             if detail_errors:
                 msgs = [d.get("msg", "") or d.get("message", "") for d in detail_errors]
                 msg = "; ".join(m for m in msgs if m) or error.get("message", msg)

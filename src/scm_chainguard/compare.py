@@ -60,8 +60,7 @@ def compare_roots(
             missing.append(cert)
 
     logger.info(
-        "Root CA comparison: %d present, %d missing "
-        "(of %d local, %d predefined + %d imported in SCM).",
+        "Root CA comparison: %d present, %d missing (of %d local, %d predefined + %d imported in SCM).",
         len(present),
         len(missing),
         len(local_roots),

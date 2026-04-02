@@ -67,10 +67,7 @@ class TestParseMetadata:
 
 
 class TestAttachPems:
-    PEM_CSV = (
-        "SHA-256 Fingerprint,X.509 Certificate (PEM)\r\n"
-        "AAAA0001,-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\r\n"
-    )
+    PEM_CSV = "SHA-256 Fingerprint,X.509 Certificate (PEM)\r\nAAAA0001,-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\r\n"
 
     def test_attaches_pem(self):
         from scm_chainguard.models import CcadbCertificate, CertType

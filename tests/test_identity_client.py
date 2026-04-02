@@ -107,9 +107,7 @@ class TestListTrustedCertificateAuthorities:
         client = IdentityClient(sample_config, mock_auth)
         client.list_trusted_certificate_authorities()
         assert "Authorization" in responses.calls[0].request.headers
-        assert (
-            responses.calls[0].request.headers["Authorization"] == "Bearer test-token"
-        )
+        assert responses.calls[0].request.headers["Authorization"] == "Bearer test-token"
 
     @responses.activate
     def test_strips_common_name_whitespace(self, sample_config, mock_auth):

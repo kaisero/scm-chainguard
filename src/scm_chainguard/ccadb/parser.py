@@ -37,10 +37,7 @@ def parse_metadata(
         sha256 = row.get("SHA-256 Fingerprint", "").strip().upper()
         if not sha256:
             continue
-        name = (
-            row.get("Certificate Name", "").strip()
-            or row.get("Common Name or Certificate Name", "").strip()
-        )
+        name = row.get("Certificate Name", "").strip() or row.get("Common Name or Certificate Name", "").strip()
         roots[sha256] = CcadbCertificate(
             sha256_fingerprint=sha256,
             common_name=name,
@@ -66,10 +63,7 @@ def parse_metadata(
         parent = row.get("Parent SHA-256 Fingerprint", "").strip().upper()
         if not sha256 or not parent:
             continue
-        name = (
-            row.get("Certificate Name", "").strip()
-            or row.get("Common Name or Certificate Name", "").strip()
-        )
+        name = row.get("Certificate Name", "").strip() or row.get("Common Name or Certificate Name", "").strip()
         all_intermediates[sha256] = CcadbCertificate(
             sha256_fingerprint=sha256,
             common_name=name,
@@ -80,9 +74,7 @@ def parse_metadata(
 
     # Walk the tree from roots
     intermediates = _walk_intermediate_tree(roots, all_intermediates)
-    logger.info(
-        "Found %d trusted intermediate certificates (all levels).", len(intermediates)
-    )
+    logger.info("Found %d trusted intermediate certificates (all levels).", len(intermediates))
     return roots, intermediates
 
 
@@ -122,9 +114,7 @@ def attach_pems(
             sha256 = row.get("SHA-256 Fingerprint", "").strip().upper()
             if sha256 not in certs or sha256 in pem_lookup:
                 continue
-            pem = (
-                row.get("X.509 Certificate (PEM)", "") or row.get("PEM", "") or ""
-            ).strip()
+            pem = (row.get("X.509 Certificate (PEM)", "") or row.get("PEM", "") or "").strip()
             if pem and "-----BEGIN CERTIFICATE-----" in pem:
                 pem_lookup[sha256] = pem
 
@@ -133,9 +123,7 @@ def attach_pems(
     for sha256, cert in certs.items():
         pem = pem_lookup.get(sha256)
         if pem is None:
-            logger.warning(
-                "No PEM data for certificate %s (%s)", sha256[:16], cert.common_name
-            )
+            logger.warning("No PEM data for certificate %s (%s)", sha256[:16], cert.common_name)
             missing += 1
             continue
         result[sha256] = replace(cert, pem=pem)
