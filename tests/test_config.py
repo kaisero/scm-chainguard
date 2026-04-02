@@ -87,9 +87,7 @@ class TestScmConfigProperties:
         config = ScmConfig(client_id="a", client_secret="b", tsg_id="c")
         assert config.security_url == "https://api.strata.paloaltonetworks.com/config/security/v1"
 
-    def test_trusted_ca_url(self):
-        config = ScmConfig(client_id="a", client_secret="b", tsg_id="c")
-        assert config.trusted_ca_url == (
-            "https://api.strata.paloaltonetworks.com/config/identity/v1"
-            "/trusted-certificate-authorities"
-        )
+    def test_identity_url_custom_host(self):
+        config = ScmConfig(client_id="a", client_secret="b", tsg_id="c",
+                           scm_host="custom.host.com")
+        assert config.identity_url == "https://custom.host.com/config/identity/v1"

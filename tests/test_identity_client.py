@@ -2,7 +2,7 @@
 
 import responses
 import pytest
-from scm_chainguard.scm.identity_client import ConflictError, IdentityClient, ImportError
+from scm_chainguard.scm.identity_client import CertificateImportError, ConflictError, IdentityClient
 from tests.conftest import IDENTITY_URL, SAMPLE_PEM, TRUSTED_CA_URL
 
 
@@ -186,7 +186,7 @@ class TestImportCertificate:
             status=400,
         )
         client = IdentityClient(sample_config, mock_auth)
-        with pytest.raises(ImportError) as exc_info:
+        with pytest.raises(CertificateImportError) as exc_info:
             client.import_certificate("test-cert", SAMPLE_PEM)
         assert exc_info.value.status_code == 400
 
@@ -210,7 +210,7 @@ class TestDeleteCertificate:
             status=404,
         )
         client = IdentityClient(sample_config, mock_auth)
-        with pytest.raises(ImportError) as exc_info:
+        with pytest.raises(CertificateImportError) as exc_info:
             client.delete_certificate("cert-123")
         assert exc_info.value.status_code == 404
 

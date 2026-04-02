@@ -1,0 +1,10 @@
+scm:
+  client_id: "your-client-id"
+  client_secret: "your-client-secret"
+  tsg_id: "your-tsg-id"
+  # Optional overrides (defaults shown):
+  # auth_url: "https://auth.apps.paloaltonetworks.com"
+  # scm_host: "api.strata.paloaltonetworks.com"
+  # cert_folder: "All"
+  # ssl_settings_folder: "Prisma Access"
+  # output_dir: "./output"

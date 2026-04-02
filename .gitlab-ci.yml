@@ -1,0 +1,34 @@
+stages:
+  - lint
+  - test
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+
+.python-base:
+  image: python:3.11-slim
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - .pip-cache/
+
+lint:
+  extends: .python-base
+  stage: lint
+  script:
+    - pip install ruff flake8 flake8-docstrings
+    - ruff check src/ tests/
+    - ruff format --check src/ tests/
+    - flake8 src/ tests/
+
+test:
+  extends: .python-base
+  stage: test
+  script:
+    - pip install -e ".[dev]"
+    - pytest --junitxml=report.xml --cov=scm_chainguard --cov-report=term-missing
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+    expire_in: 30 days

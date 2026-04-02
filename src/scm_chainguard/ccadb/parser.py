@@ -5,7 +5,6 @@ from __future__ import annotations
 import csv
 import io
 import logging
-from typing import Optional
 
 from scm_chainguard.models import CcadbCertificate, CertType
 

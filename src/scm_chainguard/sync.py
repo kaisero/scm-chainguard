@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import logging
-import time
 
 from scm_chainguard.cert_utils import cert_import_name
 from scm_chainguard.config import ScmConfig
 from scm_chainguard.logging_setup import get_audit_logger
 from scm_chainguard.models import LocalCertificate, SyncResult
-from scm_chainguard.scm.identity_client import ConflictError, IdentityClient, ImportError
+from scm_chainguard.scm.identity_client import CertificateImportError, ConflictError, IdentityClient
 from scm_chainguard.scm.security_client import SecurityClient
 
 logger = logging.getLogger(__name__)
@@ -65,7 +64,7 @@ def sync_certificates(
         except ConflictError:
             audit.info("AUDIT: IMPORT cert=%r status=skipped reason=already_exists", name)
             result.skipped.append(name)
-        except ImportError as e:
+        except CertificateImportError as e:
             if any(skip in str(e) for skip in SKIP_ERRORS):
                 audit.info("AUDIT: IMPORT cert=%r status=skipped reason=%r", name, str(e))
                 result.skipped.append(name)

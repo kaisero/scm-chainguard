@@ -36,9 +36,6 @@ class ScmConfig:
     def security_url(self) -> str:
         return f"https://{self.scm_host}/config/security/v1"
 
-    @property
-    def trusted_ca_url(self) -> str:
-        return f"https://{self.scm_host}/config/identity/v1/trusted-certificate-authorities"
 
 
 # Mapping: env var name -> ScmConfig field name

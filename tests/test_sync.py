@@ -3,7 +3,7 @@
 import responses
 import pytest
 from scm_chainguard.models import CertType, LocalCertificate, SyncResult
-from scm_chainguard.scm.identity_client import IdentityClient
+from scm_chainguard.scm.identity_client import CertificateImportError, IdentityClient
 from scm_chainguard.scm.security_client import SecurityClient
 from scm_chainguard.sync import sync_certificates
 from tests.conftest import IDENTITY_URL, SECURITY_URL, SAMPLE_PEM

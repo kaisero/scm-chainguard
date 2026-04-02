@@ -8,6 +8,7 @@ import requests
 
 from scm_chainguard.config import ScmConfig
 from scm_chainguard.scm.auth import ScmAuthenticator
+from scm_chainguard.scm.identity_client import _extract_error_message
 
 logger = logging.getLogger(__name__)
 
@@ -61,23 +62,8 @@ class SecurityClient:
             timeout=self._config.request_timeout,
         )
         if not resp.ok:
-            msg = resp.text
-            try:
-                body = resp.json()
-                errors = body.get("_errors", [])
-                if errors:
-                    error = errors[0]
-                    details = error.get("details", {})
-                    detail_errors = details.get("errors", []) if isinstance(details, dict) else []
-                    if detail_errors:
-                        msgs = [d.get("msg", "") or d.get("message", "") for d in detail_errors]
-                        msg = "; ".join(m for m in msgs if m) or error.get("message", msg)
-                    else:
-                        msg = error.get("message", msg)
-            except Exception:
-                pass
             raise SecurityError(
-                f"HTTP {resp.status_code}: {msg}",
+                f"HTTP {resp.status_code}: {_extract_error_message(resp)}",
                 resp.status_code,
             )
 
