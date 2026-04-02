@@ -11,7 +11,7 @@ class CertType(Enum):
     INTERMEDIATE = "intermediate"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class CcadbCertificate:
     """A certificate record from CCADB metadata."""
 
@@ -23,7 +23,7 @@ class CcadbCertificate:
     pem: str | None = None
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class LocalCertificate:
     """A certificate loaded from a local PEM file."""
 
@@ -35,7 +35,7 @@ class LocalCertificate:
     cert_type: CertType
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ScmPredefinedRoot:
     """A predefined trusted root CA from the SCM Identity API."""
 
@@ -47,7 +47,7 @@ class ScmPredefinedRoot:
     expiry_epoch: str = ""
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ScmImportedCert:
     """An imported certificate from the SCM Identity API."""
 
@@ -59,7 +59,7 @@ class ScmImportedCert:
     pem: str | None = None
 
 
-@dataclass
+@dataclass(slots=True)
 class ComparisonResult:
     """Result of comparing local certificates against SCM."""
 
@@ -70,7 +70,7 @@ class ComparisonResult:
     total_scm: int = 0
 
 
-@dataclass
+@dataclass(slots=True)
 class SyncResult:
     """Result of a sync operation."""
 
@@ -81,7 +81,7 @@ class SyncResult:
     dry_run: bool = False
 
 
-@dataclass
+@dataclass(slots=True)
 class CleanupResult:
     """Result of a cleanup operation."""
 

@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING
 
 import typer
 
 from scm_chainguard import __version__
 from scm_chainguard.config import ConfigError, load_config
 from scm_chainguard.logging_setup import configure_logging
+
+if TYPE_CHECKING:
+    from scm_chainguard.config import ScmConfig
 
 app = typer.Typer(
     name="scm-chainguard",
@@ -27,19 +30,19 @@ def _version_callback(value: bool) -> None:
 @app.callback()
 def main(
     ctx: typer.Context,
-    config: Optional[Path] = typer.Option(
+    config: Path | None = typer.Option(
         None,
         "--config",
         "-c",
         help="Path to YAML config file.",
     ),
     debug: bool = typer.Option(False, "--debug", help="Enable debug logging."),
-    log_file: Optional[Path] = typer.Option(
+    log_file: Path | None = typer.Option(
         None,
         "--log-file",
         help="Write logs to file.",
     ),
-    version: Optional[bool] = typer.Option(
+    version: bool | None = typer.Option(
         None,
         "--version",
         callback=_version_callback,
@@ -54,7 +57,7 @@ def main(
     ctx.obj["debug"] = debug
 
 
-def _get_config(ctx: typer.Context) -> "ScmConfig":  # noqa: F821
+def _get_config(ctx: typer.Context) -> ScmConfig:
     try:
         return load_config(ctx.obj.get("config_path"))
     except ConfigError as e:
@@ -71,7 +74,7 @@ def fetch(
         "-i",
         help="Also fetch intermediate certificates (default: roots only).",
     ),
-    output_dir: Optional[Path] = typer.Option(
+    output_dir: Path | None = typer.Option(
         None,
         "--output-dir",
         "-o",

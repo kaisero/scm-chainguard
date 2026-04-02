@@ -18,6 +18,8 @@ from scm_chainguard.scm.security_client import SecurityClient
 logger = logging.getLogger(__name__)
 audit = get_audit_logger()
 
+PROGRESS_REPORT_INTERVAL = 50
+
 SKIP_ERRORS = {
     "Certificate is expired",
     "Unsupported digest or keys used in FIPS-CC mode",
@@ -92,7 +94,7 @@ def sync_certificates(
                 )
                 result.failed.append((name, str(e)))
 
-        if not dry_run and i % 50 == 0:
+        if not dry_run and i % PROGRESS_REPORT_INTERVAL == 0:
             logger.info("  Progress: %d/%d certificates processed.", i, len(missing))
 
     # Update trusted root CA list — include both newly imported and already-imported-but-untrusted

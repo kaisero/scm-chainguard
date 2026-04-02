@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import logging
+from dataclasses import replace
 
 from scm_chainguard.models import CcadbCertificate, CertType
 
@@ -137,14 +138,7 @@ def attach_pems(
             )
             missing += 1
             continue
-        result[sha256] = CcadbCertificate(
-            sha256_fingerprint=cert.sha256_fingerprint,
-            common_name=cert.common_name,
-            ca_owner=cert.ca_owner,
-            cert_type=cert.cert_type,
-            parent_sha256=cert.parent_sha256,
-            pem=pem,
-        )
+        result[sha256] = replace(cert, pem=pem)
 
     if missing:
         logger.warning("%d certificates have no PEM data and were excluded.", missing)

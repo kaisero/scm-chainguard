@@ -229,7 +229,7 @@ def run_cleanup(config: ScmConfig, dry_run: bool = False) -> CleanupResult:
             if is_cert_expired(cert.pem):
                 expired.append(cert)
         except Exception as e:
-            logger.warning("Could not parse cert %r: %s", cert.name, e)
+            logger.warning("Could not parse cert %r: %s", cert.name, e, exc_info=True)
 
     if not expired:
         logger.info("No expired CG_-managed certificates found.")

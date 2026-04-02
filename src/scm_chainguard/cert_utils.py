@@ -4,11 +4,20 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import logging
 import re
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from cryptography import x509
 from cryptography.x509.oid import NameOID
+
+if TYPE_CHECKING:
+    from scm_chainguard.models import CertType, LocalCertificate
+
+logger = logging.getLogger(__name__)
+
+MAX_FILENAME_LENGTH = 180
 
 
 def pem_to_der(pem_text: str) -> bytes:
@@ -37,7 +46,7 @@ def sanitize_filename(name: str, sha256: str) -> str:
     clean = re.sub(r"_+", "_", clean).strip("_")
     if not clean:
         clean = "unnamed"
-    clean = clean[:180]
+    clean = clean[:MAX_FILENAME_LENGTH]
     return f"{clean}_{sha256[:8].upper()}.pem"
 
 
@@ -125,8 +134,8 @@ def is_cert_expired(pem_text: str) -> bool:
 
 def load_local_certs(
     directory: Path,
-    cert_type: "CertType",  # noqa: F821
-) -> "list[LocalCertificate]":  # noqa: F821
+    cert_type: CertType,
+) -> list[LocalCertificate]:
     """Load all PEM certificates from a directory.
 
     Returns a list of LocalCertificate with CN, SHA-256, and PEM content.
@@ -142,6 +151,7 @@ def load_local_certs(
         try:
             sha256 = pem_to_sha256(pem)
         except Exception:
+            logger.warning("Failed to compute SHA-256 for %s", path.name, exc_info=True)
             sha256 = ""
         cn = extract_common_name(pem)
         if not cn:

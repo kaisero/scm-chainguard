@@ -85,7 +85,7 @@ def load_config(config_path: Path | None = None) -> ScmConfig:
 def _load_yaml(path: Path) -> dict[str, Any]:
     """Load and flatten the 'scm' section of a YAML config file."""
     try:
-        with open(path) as f:
+        with path.open() as f:
             data = yaml.safe_load(f)
     except (OSError, yaml.YAMLError) as e:
         raise ConfigError(f"Failed to read config file {path}: {e}")
