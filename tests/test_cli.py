@@ -13,9 +13,11 @@ class TestCliStructure:
         assert "Chrome-trusted CA" in result.stdout
 
     def test_version(self):
+        from scm_chainguard import __version__
+
         result = runner.invoke(app, ["--version"])
         assert result.exit_code == 0
-        assert "0.0.1" in result.stdout
+        assert __version__ in result.stdout
 
     def test_subcommands_listed(self):
         result = runner.invoke(app, ["--help"])
