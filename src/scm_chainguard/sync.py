@@ -8,11 +8,17 @@ from scm_chainguard.cert_utils import cert_import_name
 from scm_chainguard.config import ScmConfig
 from scm_chainguard.logging_setup import get_audit_logger
 from scm_chainguard.models import LocalCertificate, SyncResult
-from scm_chainguard.scm.identity_client import CertificateImportError, ConflictError, IdentityClient
+from scm_chainguard.scm.identity_client import (
+    CertificateImportError,
+    ConflictError,
+    IdentityClient,
+)
 from scm_chainguard.scm.security_client import SecurityClient
 
 logger = logging.getLogger(__name__)
 audit = get_audit_logger()
+
+PROGRESS_REPORT_INTERVAL = 50
 
 SKIP_ERRORS = {
     "Certificate is expired",
@@ -53,13 +59,21 @@ def sync_certificates(
         name = cert_import_name(cert.filename)
 
         if dry_run:
-            audit.info("AUDIT: DRY_RUN would_import cert=%r folder=%r", name, config.cert_folder)
+            audit.info(
+                "AUDIT: DRY_RUN would_import cert=%r folder=%r",
+                name,
+                config.cert_folder,
+            )
             result.imported.append(name)
             continue
 
         try:
             identity_client.import_certificate(name, cert.pem, folder=config.cert_folder)
-            audit.info("AUDIT: IMPORT cert=%r folder=%r status=success", name, config.cert_folder)
+            audit.info(
+                "AUDIT: IMPORT cert=%r folder=%r status=success",
+                name,
+                config.cert_folder,
+            )
             result.imported.append(name)
         except ConflictError:
             audit.info("AUDIT: IMPORT cert=%r status=skipped reason=already_exists", name)
@@ -72,7 +86,7 @@ def sync_certificates(
                 audit.warning("AUDIT: IMPORT cert=%r status=failed error=%r", name, str(e))
                 result.failed.append((name, str(e)))
 
-        if not dry_run and i % 50 == 0:
+        if not dry_run and i % PROGRESS_REPORT_INTERVAL == 0:
             logger.info("  Progress: %d/%d certificates processed.", i, len(missing))
 
     # Update trusted root CA list — include both newly imported and already-imported-but-untrusted
