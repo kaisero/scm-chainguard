@@ -16,10 +16,9 @@ lint:
   extends: .python-base
   stage: lint
   script:
-    - pip install ruff flake8 flake8-docstrings
+    - pip install ruff
     - ruff check src/ tests/
     - ruff format --check src/ tests/
-    - flake8 src/ tests/
 
 test:
   extends: .python-base
