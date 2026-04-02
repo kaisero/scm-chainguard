@@ -1,6 +1,7 @@
 stages:
   - lint
   - test
+  - publish
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
@@ -31,3 +32,18 @@ test:
     reports:
       junit: report.xml
     expire_in: 30 days
+
+publish:
+  extends: .python-base
+  stage: publish
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - VERSION
+  script:
+    - pip install build twine
+    - python -m build
+    - twine upload dist/*
+  variables:
+    TWINE_USERNAME: $PYPI_USERNAME
+    TWINE_PASSWORD: $PYPI_PASSWORD
