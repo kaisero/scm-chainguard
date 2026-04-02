@@ -1,6 +1,6 @@
 # scm-chainguard
 
-**Manage Chrome-trusted CA certificates in Palo Alto Strata Cloud Manager**
+**Manage Trusted CA certificates for Outbound Decryption in Strata Cloud Manager**
 
 [![Python](https://img.shields.io/badge/python-%3E%3D3.11-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
@@ -11,7 +11,7 @@
 
 ## Overview
 
-scm-chainguard keeps your Palo Alto Strata Cloud Manager (SCM) SSL decryption trust store in sync with the Chrome Root Store maintained by [CCADB](https://www.ccadb.org/). It downloads the latest Chrome-trusted root (and optionally intermediate) CA certificates, compares them against what is already configured in SCM, imports any missing certificates, and adds them to the trusted root CA list used for SSL decryption.
+scm-chainguard keeps your Strata Cloud Manager SSL decryption trust store in sync with the Chrome Root Store maintained by [CCADB](https://www.ccadb.org/). It downloads the latest Chrome-trusted root (and optionally intermediate) CA certificates, compares them against what is already configured in SCM, imports any missing certificates, and adds them to the trusted root CA list used for SSL decryption.
 
 All managed certificates are prefixed with `CG_` so they can be identified and cleaned up independently.
 
@@ -92,6 +92,11 @@ scm-chainguard cleanup
 | `--log-file` | Write logs to file |
 | `--dry-run / -n` | Show what would be done without making changes |
 | `--include-intermediates / -i` | Include intermediate certificates |
+
+
+### Disclaimer
+
+`scm-chainguard` currently imports all certificates in the 'Global' folder due to an existing SCM API Implementation.
 
 ## License
 

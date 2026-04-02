@@ -6,7 +6,22 @@ build-backend = "setuptools.build_meta"
 name = "scm-chainguard"
 dynamic = ["version"]
 description = "Manage Chrome-trusted CA certificates in Palo Alto Strata Cloud Manager"
+readme = "README.md"
+license = {file = "LICENSE"}
 requires-python = ">=3.11"
+keywords = ["palo-alto", "strata-cloud-manager", "ssl-decryption", "certificate", "ccadb", "chrome-root-store"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: System :: Networking",
+    "Typing :: Typed",
+]
 dependencies = [
     "typer[all]>=0.9",
     "requests>=2.31",
@@ -21,6 +36,12 @@ dev = [
     "responses>=0.25",
     "mypy>=1.0",
 ]
+
+[project.urls]
+Homepage = "https://gitlab.com/dephell/scm-chainguard"
+Repository = "https://gitlab.com/dephell/scm-chainguard"
+Issues = "https://gitlab.com/dephell/scm-chainguard/-/issues"
+Changelog = "https://gitlab.com/dephell/scm-chainguard/-/releases"
 
 [project.scripts]
 scm-chainguard = "scm_chainguard.cli:app"
