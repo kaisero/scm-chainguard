@@ -7,8 +7,8 @@ import logging
 import requests
 
 from scm_chainguard.config import ScmConfig
+from scm_chainguard.scm import extract_error_message
 from scm_chainguard.scm.auth import ScmAuthenticator
-from scm_chainguard.scm.identity_client import _extract_error_message
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,15 @@ class SecurityClient:
         self._config = config
         self._auth = auth
         self._session = requests.Session()
+
+    def close(self) -> None:
+        self._session.close()
+
+    def __enter__(self) -> SecurityClient:
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
 
     def get_ssl_decryption_settings(self) -> dict | None:
         """Get the SSL decryption settings singleton."""
@@ -63,12 +72,14 @@ class SecurityClient:
         )
         if not resp.ok:
             raise SecurityError(
-                f"HTTP {resp.status_code}: {_extract_error_message(resp)}",
+                f"HTTP {resp.status_code}: {extract_error_message(resp)}",
                 resp.status_code,
             )
 
     def add_trusted_root_cas(
-        self, cert_names: list[str], dry_run: bool = False,
+        self,
+        cert_names: list[str],
+        dry_run: bool = False,
     ) -> list[str]:
         """Add certificate names to the trusted_root_CA list.
 
@@ -100,7 +111,9 @@ class SecurityClient:
         return to_add
 
     def remove_trusted_root_cas(
-        self, cert_names: list[str], dry_run: bool = False,
+        self,
+        cert_names: list[str],
+        dry_run: bool = False,
     ) -> list[str]:
         """Remove certificate names from the trusted_root_CA list.
 
@@ -121,7 +134,10 @@ class SecurityClient:
             return []
 
         if dry_run:
-            logger.info("[DRY-RUN] Would remove %d certificates from trusted_root_CA.", len(to_remove))
+            logger.info(
+                "[DRY-RUN] Would remove %d certificates from trusted_root_CA.",
+                len(to_remove),
+            )
             return to_remove
 
         new_list = [n for n in current if n not in names_to_remove]

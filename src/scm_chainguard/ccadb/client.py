@@ -20,6 +20,15 @@ class CcadbClient:
         self._timeout = timeout
         self._session = requests.Session()
 
+    def close(self) -> None:
+        self._session.close()
+
+    def __enter__(self) -> CcadbClient:
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
+
     def download_metadata_csv(self) -> str:
         """Download the CCADB AllCertificateRecordsReport CSV."""
         logger.info("Downloading CCADB metadata CSV from %s", METADATA_URL)

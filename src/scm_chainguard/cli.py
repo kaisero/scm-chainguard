@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING
 
 import typer
 
 from scm_chainguard import __version__
 from scm_chainguard.config import ConfigError, load_config
 from scm_chainguard.logging_setup import configure_logging
+
+if TYPE_CHECKING:
+    from scm_chainguard.config import ScmConfig
 
 app = typer.Typer(
     name="scm-chainguard",
@@ -28,15 +30,23 @@ def _version_callback(value: bool) -> None:
 @app.callback()
 def main(
     ctx: typer.Context,
-    config: Optional[Path] = typer.Option(
-        None, "--config", "-c", help="Path to YAML config file.",
+    config: Path | None = typer.Option(
+        None,
+        "--config",
+        "-c",
+        help="Path to YAML config file.",
     ),
     debug: bool = typer.Option(False, "--debug", help="Enable debug logging."),
-    log_file: Optional[Path] = typer.Option(
-        None, "--log-file", help="Write logs to file.",
+    log_file: Path | None = typer.Option(
+        None,
+        "--log-file",
+        help="Write logs to file.",
     ),
-    version: Optional[bool] = typer.Option(
-        None, "--version", callback=_version_callback, is_eager=True,
+    version: bool | None = typer.Option(
+        None,
+        "--version",
+        callback=_version_callback,
+        is_eager=True,
         help="Show version and exit.",
     ),
 ) -> None:
@@ -47,8 +57,7 @@ def main(
     ctx.obj["debug"] = debug
 
 
-def _get_config(ctx: typer.Context) -> "ScmConfig":
-    from scm_chainguard.config import ScmConfig
+def _get_config(ctx: typer.Context) -> ScmConfig:
     try:
         return load_config(ctx.obj.get("config_path"))
     except ConfigError as e:
@@ -60,11 +69,16 @@ def _get_config(ctx: typer.Context) -> "ScmConfig":
 def fetch(
     ctx: typer.Context,
     include_intermediates: bool = typer.Option(
-        False, "--include-intermediates", "-i",
+        False,
+        "--include-intermediates",
+        "-i",
         help="Also fetch intermediate certificates (default: roots only).",
     ),
-    output_dir: Optional[Path] = typer.Option(
-        None, "--output-dir", "-o", help="Override output directory.",
+    output_dir: Path | None = typer.Option(
+        None,
+        "--output-dir",
+        "-o",
+        help="Override output directory.",
     ),
 ) -> None:
     """Download Chrome-trusted CA certificates from CCADB."""
@@ -85,7 +99,9 @@ def fetch(
 def compare(
     ctx: typer.Context,
     include_intermediates: bool = typer.Option(
-        False, "--include-intermediates", "-i",
+        False,
+        "--include-intermediates",
+        "-i",
         help="Also compare intermediate certificates.",
     ),
 ) -> None:
@@ -97,8 +113,7 @@ def compare(
 
     for label, comp in results.items():
         typer.echo(f"\n{'=' * 60}")
-        typer.echo(f"{label.upper()}: {len(comp.present)} present, "
-                    f"{len(comp.missing)} missing (of {comp.total_local})")
+        typer.echo(f"{label.upper()}: {len(comp.present)} present, {len(comp.missing)} missing (of {comp.total_local})")
         typer.echo(f"{'=' * 60}")
 
         for cert, scm_name in sorted(comp.present, key=lambda x: x[0].common_name):
@@ -114,11 +129,15 @@ def compare(
 def sync(
     ctx: typer.Context,
     include_intermediates: bool = typer.Option(
-        False, "--include-intermediates", "-i",
+        False,
+        "--include-intermediates",
+        "-i",
         help="Also sync intermediate certificates.",
     ),
     dry_run: bool = typer.Option(
-        False, "--dry-run", "-n",
+        False,
+        "--dry-run",
+        "-n",
         help="Show what would be done without making changes.",
     ),
 ) -> None:
@@ -130,10 +149,7 @@ def sync(
 
     for label, sr in results.items():
         prefix = "[DRY-RUN] " if sr.dry_run else ""
-        typer.echo(f"\n{label.upper()} sync: "
-                    f"{prefix}{len(sr.imported)} imported, "
-                    f"{len(sr.skipped)} skipped, "
-                    f"{len(sr.failed)} failed")
+        typer.echo(f"\n{label.upper()} sync: {prefix}{len(sr.imported)} imported, {len(sr.skipped)} skipped, {len(sr.failed)} failed")
         if sr.trusted_roots_added:
             typer.echo(f"  {prefix}{len(sr.trusted_roots_added)} added to trusted root CA list")
         for name, error in sr.failed:
@@ -148,7 +164,9 @@ def sync(
 def cleanup(
     ctx: typer.Context,
     dry_run: bool = typer.Option(
-        False, "--dry-run", "-n",
+        False,
+        "--dry-run",
+        "-n",
         help="Show what would be removed without making changes.",
     ),
 ) -> None:
@@ -163,10 +181,7 @@ def cleanup(
         typer.echo("No expired CG_-managed certificates found.")
         return
 
-    typer.echo(f"\n{prefix}Cleanup: "
-                f"{len(result.deleted)} deleted, "
-                f"{len(result.removed_from_trusted)} removed from trusted root CA list, "
-                f"{len(result.failed)} failed")
+    typer.echo(f"\n{prefix}Cleanup: {len(result.deleted)} deleted, {len(result.removed_from_trusted)} removed from trusted root CA list, {len(result.failed)} failed")
     for name in result.deleted:
         typer.echo(f"  {prefix}DELETED: {name}")
     for name, error in result.failed:
@@ -180,11 +195,15 @@ def cleanup(
 def run(
     ctx: typer.Context,
     include_intermediates: bool = typer.Option(
-        False, "--include-intermediates", "-i",
+        False,
+        "--include-intermediates",
+        "-i",
         help="Include intermediate certificates in all stages.",
     ),
     dry_run: bool = typer.Option(
-        False, "--dry-run", "-n",
+        False,
+        "--dry-run",
+        "-n",
         help="Dry-run the sync stage.",
     ),
 ) -> None:
@@ -197,10 +216,7 @@ def run(
     sync_results = result.get("sync", {})
     for label, sr in sync_results.items():
         prefix = "[DRY-RUN] " if sr.dry_run else ""
-        typer.echo(f"\n{label.upper()}: "
-                    f"{prefix}{len(sr.imported)} imported, "
-                    f"{len(sr.skipped)} skipped, "
-                    f"{len(sr.failed)} failed")
+        typer.echo(f"\n{label.upper()}: {prefix}{len(sr.imported)} imported, {len(sr.skipped)} skipped, {len(sr.failed)} failed")
 
     total_failed = sum(len(sr.failed) for sr in sync_results.values())
     if total_failed:

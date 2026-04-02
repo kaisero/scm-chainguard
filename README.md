@@ -7,6 +7,8 @@
 
 ---
 
+> **Beta:** This project is under active development. APIs, CLI flags, and behavior may change between releases. Use `--dry-run` to preview changes before applying them.
+
 ## Overview
 
 scm-chainguard keeps your Palo Alto Strata Cloud Manager (SCM) SSL decryption trust store in sync with the Chrome Root Store maintained by [CCADB](https://www.ccadb.org/). It downloads the latest Chrome-trusted root (and optionally intermediate) CA certificates, compares them against what is already configured in SCM, imports any missing certificates, and adds them to the trusted root CA list used for SSL decryption.
