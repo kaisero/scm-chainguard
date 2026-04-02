@@ -124,13 +124,14 @@ def is_cert_expired(pem_text: str) -> bool:
 
 
 def load_local_certs(
-    directory: Path, cert_type: "CertType",
-) -> list["LocalCertificate"]:
+    directory: Path,
+    cert_type: "CertType",  # noqa: F821
+) -> "list[LocalCertificate]":  # noqa: F821
     """Load all PEM certificates from a directory.
 
     Returns a list of LocalCertificate with CN, SHA-256, and PEM content.
     """
-    from scm_chainguard.models import CertType, LocalCertificate
+    from scm_chainguard.models import LocalCertificate
 
     certs = []
     if not directory.is_dir():

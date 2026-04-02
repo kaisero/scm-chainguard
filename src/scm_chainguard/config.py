@@ -37,7 +37,6 @@ class ScmConfig:
         return f"https://{self.scm_host}/config/security/v1"
 
 
-
 # Mapping: env var name -> ScmConfig field name
 _ENV_MAP = {
     "SCM_CLIENT_ID": "client_id",
@@ -74,9 +73,7 @@ def load_config(config_path: Path | None = None) -> ScmConfig:
     missing = _REQUIRED_FIELDS - set(values.keys())
     if missing:
         fields = ", ".join(sorted(missing))
-        env_vars = ", ".join(
-            env for env, field in _ENV_MAP.items() if field in missing
-        )
+        env_vars = ", ".join(env for env, field in _ENV_MAP.items() if field in missing)
         raise ConfigError(
             f"Missing required configuration: {fields}. "
             f"Set environment variables ({env_vars}) or provide a config file."
@@ -94,10 +91,10 @@ def _load_yaml(path: Path) -> dict[str, Any]:
         raise ConfigError(f"Failed to read config file {path}: {e}")
 
     if not isinstance(data, dict) or "scm" not in data:
-        raise ConfigError(f"Config file must contain a top-level 'scm' key")
+        raise ConfigError("Config file must contain a top-level 'scm' key")
 
     scm_section = data["scm"]
     if not isinstance(scm_section, dict):
-        raise ConfigError(f"Config 'scm' section must be a mapping")
+        raise ConfigError("Config 'scm' section must be a mapping")
 
     return {k: str(v) for k, v in scm_section.items() if v is not None}

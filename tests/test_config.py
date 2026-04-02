@@ -81,13 +81,20 @@ class TestLoadConfigFromYaml:
 class TestScmConfigProperties:
     def test_identity_url(self):
         config = ScmConfig(client_id="a", client_secret="b", tsg_id="c")
-        assert config.identity_url == "https://api.strata.paloaltonetworks.com/config/identity/v1"
+        assert (
+            config.identity_url
+            == "https://api.strata.paloaltonetworks.com/config/identity/v1"
+        )
 
     def test_security_url(self):
         config = ScmConfig(client_id="a", client_secret="b", tsg_id="c")
-        assert config.security_url == "https://api.strata.paloaltonetworks.com/config/security/v1"
+        assert (
+            config.security_url
+            == "https://api.strata.paloaltonetworks.com/config/security/v1"
+        )
 
     def test_identity_url_custom_host(self):
-        config = ScmConfig(client_id="a", client_secret="b", tsg_id="c",
-                           scm_host="custom.host.com")
+        config = ScmConfig(
+            client_id="a", client_secret="b", tsg_id="c", scm_host="custom.host.com"
+        )
         assert config.identity_url == "https://custom.host.com/config/identity/v1"

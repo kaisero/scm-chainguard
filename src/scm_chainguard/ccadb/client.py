@@ -8,7 +8,9 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-METADATA_URL = "https://ccadb.my.salesforce-sites.com/ccadb/AllCertificateRecordsCSVFormatv3"
+METADATA_URL = (
+    "https://ccadb.my.salesforce-sites.com/ccadb/AllCertificateRecordsCSVFormatv3"
+)
 PEM_URL_TEMPLATE = "https://ccadb.my.salesforce-sites.com/ccadb/AllCertificatePEMsCSVFormat?NotBeforeDecade={decade}"
 DECADES = ("20000", "20100", "20200")
 

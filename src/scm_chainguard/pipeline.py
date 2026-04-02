@@ -20,7 +20,9 @@ logger = logging.getLogger(__name__)
 
 
 def _save_certs(
-    all_certs: dict, cert_type: CertType, directory: Path,
+    all_certs: dict,
+    cert_type: CertType,
+    directory: Path,
 ) -> int:
     """Save certificates of a given type to directory, returning count."""
     directory.mkdir(parents=True, exist_ok=True)
@@ -35,7 +37,9 @@ def _save_certs(
     return count
 
 
-def run_fetch(config: ScmConfig, include_intermediates: bool = False) -> dict[str, Path]:
+def run_fetch(
+    config: ScmConfig, include_intermediates: bool = False
+) -> dict[str, Path]:
     """Download Chrome-trusted certificates from CCADB and save to output directory."""
     output = Path(config.output_dir)
     roots_dir = output / "roots"
@@ -58,7 +62,9 @@ def run_fetch(config: ScmConfig, include_intermediates: bool = False) -> dict[st
     if include_intermediates:
         intermediates_dir = output / "intermediates"
         int_count = _save_certs(all_certs, CertType.INTERMEDIATE, intermediates_dir)
-        logger.info("Saved %d intermediate certificates to %s", int_count, intermediates_dir)
+        logger.info(
+            "Saved %d intermediate certificates to %s", int_count, intermediates_dir
+        )
         result["intermediates"] = intermediates_dir
 
     return result
@@ -89,9 +95,15 @@ def run_compare(
     results["roots"] = compare_roots(local_roots, scm_predefined, scm_imported)
 
     if include_intermediates:
-        local_intermediates = load_local_certs(output / "intermediates", CertType.INTERMEDIATE)
-        logger.info("Loaded %d local intermediate certificates.", len(local_intermediates))
-        results["intermediates"] = compare_intermediates(local_intermediates, scm_imported)
+        local_intermediates = load_local_certs(
+            output / "intermediates", CertType.INTERMEDIATE
+        )
+        logger.info(
+            "Loaded %d local intermediate certificates.", len(local_intermediates)
+        )
+        results["intermediates"] = compare_intermediates(
+            local_intermediates, scm_imported
+        )
 
     return results
 
@@ -106,13 +118,16 @@ def run_sync(
     identity = IdentityClient(config, auth)
     security = SecurityClient(config, auth)
 
-    comparisons = run_compare(config, include_intermediates, auth=auth, identity=identity)
+    comparisons = run_compare(
+        config, include_intermediates, auth=auth, identity=identity
+    )
 
     results: dict[str, SyncResult] = {}
 
     root_comp = comparisons["roots"]
     ensure_trusted = [
-        scm_name for _, scm_name in root_comp.present
+        scm_name
+        for _, scm_name in root_comp.present
         if scm_name.startswith(CERT_PREFIX)
     ]
     if ensure_trusted:
@@ -123,10 +138,16 @@ def run_sync(
 
     if root_comp.missing or ensure_trusted:
         if root_comp.missing:
-            logger.info("Syncing %d missing root certificates...", len(root_comp.missing))
+            logger.info(
+                "Syncing %d missing root certificates...", len(root_comp.missing)
+            )
         results["roots"] = sync_certificates(
-            root_comp.missing, identity, security, config,
-            dry_run=dry_run, add_as_trusted_root=True,
+            root_comp.missing,
+            identity,
+            security,
+            config,
+            dry_run=dry_run,
+            add_as_trusted_root=True,
             ensure_trusted=ensure_trusted,
         )
     else:
@@ -136,10 +157,16 @@ def run_sync(
     if include_intermediates and "intermediates" in comparisons:
         int_comp = comparisons["intermediates"]
         if int_comp.missing:
-            logger.info("Syncing %d missing intermediate certificates...", len(int_comp.missing))
+            logger.info(
+                "Syncing %d missing intermediate certificates...", len(int_comp.missing)
+            )
             results["intermediates"] = sync_certificates(
-                int_comp.missing, identity, security, config,
-                dry_run=dry_run, add_as_trusted_root=False,
+                int_comp.missing,
+                identity,
+                security,
+                config,
+                dry_run=dry_run,
+                add_as_trusted_root=False,
             )
         else:
             logger.info("All intermediate certificates are already present in SCM.")
@@ -154,8 +181,11 @@ def run_full_pipeline(
     dry_run: bool = False,
 ) -> dict:
     """Full pipeline: fetch -> compare -> sync."""
-    logger.info("Starting full pipeline (include_intermediates=%s, dry_run=%s)",
-                include_intermediates, dry_run)
+    logger.info(
+        "Starting full pipeline (include_intermediates=%s, dry_run=%s)",
+        include_intermediates,
+        dry_run,
+    )
 
     logger.info("=" * 60)
     logger.info("STEP 1: Fetching certificates from CCADB")
@@ -184,12 +214,16 @@ def run_cleanup(config: ScmConfig, dry_run: bool = False) -> CleanupResult:
 
     all_certs = identity.list_certificates()
     managed = [c for c in all_certs if c.name.startswith(CERT_PREFIX)]
-    logger.info("Found %d CG_-managed certificates (of %d total).", len(managed), len(all_certs))
+    logger.info(
+        "Found %d CG_-managed certificates (of %d total).", len(managed), len(all_certs)
+    )
 
     expired = []
     for cert in managed:
         if not cert.pem:
-            logger.warning("No PEM data for cert %r (id=%s), skipping.", cert.name, cert.id)
+            logger.warning(
+                "No PEM data for cert %r (id=%s), skipping.", cert.name, cert.id
+            )
             continue
         try:
             if is_cert_expired(cert.pem):
@@ -221,7 +255,12 @@ def run_cleanup(config: ScmConfig, dry_run: bool = False) -> CleanupResult:
             audit.info("AUDIT: DELETE cert=%r id=%s status=success", cert.name, cert.id)
             result.deleted.append(cert.name)
         except Exception as e:
-            audit.warning("AUDIT: DELETE cert=%r id=%s status=failed error=%r", cert.name, cert.id, str(e))
+            audit.warning(
+                "AUDIT: DELETE cert=%r id=%s status=failed error=%r",
+                cert.name,
+                cert.id,
+                str(e),
+            )
             result.failed.append((cert.name, str(e)))
 
     logger.info(

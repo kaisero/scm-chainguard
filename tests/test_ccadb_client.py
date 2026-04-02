@@ -8,7 +8,9 @@ from scm_chainguard.ccadb.client import CcadbClient, METADATA_URL, PEM_URL_TEMPL
 class TestCcadbClient:
     @responses.activate
     def test_download_metadata_csv(self):
-        responses.add(responses.GET, METADATA_URL, body="col1,col2\nval1,val2\n", status=200)
+        responses.add(
+            responses.GET, METADATA_URL, body="col1,col2\nval1,val2\n", status=200
+        )
         client = CcadbClient(timeout=5)
         result = client.download_metadata_csv()
         assert "col1" in result
@@ -16,7 +18,9 @@ class TestCcadbClient:
     @responses.activate
     def test_download_pem_csv(self):
         url = PEM_URL_TEMPLATE.format(decade="20200")
-        responses.add(responses.GET, url, body="SHA-256 Fingerprint,PEM\nAA,BB\n", status=200)
+        responses.add(
+            responses.GET, url, body="SHA-256 Fingerprint,PEM\nAA,BB\n", status=200
+        )
         client = CcadbClient(timeout=5)
         result = client.download_pem_csv("20200")
         assert "SHA-256 Fingerprint" in result

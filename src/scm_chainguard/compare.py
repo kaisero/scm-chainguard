@@ -35,7 +35,7 @@ def compare_roots(
     # Build imported lookups by SHA-256 and CN
     imported_shas: dict[str, str] = {}
     imported_cns: dict[str, str] = {}
-    for cert in (scm_imported or []):
+    for cert in scm_imported or []:
         if cert.sha256_fingerprint:
             imported_shas[cert.sha256_fingerprint] = cert.name
         if cert.common_name:
@@ -62,8 +62,11 @@ def compare_roots(
     logger.info(
         "Root CA comparison: %d present, %d missing "
         "(of %d local, %d predefined + %d imported in SCM).",
-        len(present), len(missing), len(local_roots),
-        len(scm_predefined), len(scm_imported or []),
+        len(present),
+        len(missing),
+        len(local_roots),
+        len(scm_predefined),
+        len(scm_imported or []),
     )
     return ComparisonResult(
         cert_type=CertType.ROOT,
@@ -101,7 +104,10 @@ def compare_intermediates(
 
     logger.info(
         "Intermediate comparison: %d present, %d missing (of %d local, %d SCM imported).",
-        len(present), len(missing), len(local_intermediates), len(scm_imported),
+        len(present),
+        len(missing),
+        len(local_intermediates),
+        len(scm_imported),
     )
     return ComparisonResult(
         cert_type=CertType.INTERMEDIATE,

@@ -24,7 +24,9 @@ def _extract_error_message(resp: requests.Response) -> str:
         if errors:
             error = errors[0]
             details = error.get("details", {})
-            detail_errors = details.get("errors", []) if isinstance(details, dict) else []
+            detail_errors = (
+                details.get("errors", []) if isinstance(details, dict) else []
+            )
             if detail_errors:
                 msgs = [d.get("msg", "") or d.get("message", "") for d in detail_errors]
                 msg = "; ".join(m for m in msgs if m) or error.get("message", msg)
@@ -47,6 +49,7 @@ class CertificateImportError(Exception):
 
 class ConflictError(CertificateImportError):
     """Raised on 409 Conflict (certificate already exists)."""
+
     pass
 
 
@@ -59,7 +62,10 @@ class IdentityClient:
         self._session = requests.Session()
 
     def _paginate(
-        self, url: str, folder: str, mapper: Callable[[dict[str, Any]], Any],
+        self,
+        url: str,
+        folder: str,
+        mapper: Callable[[dict[str, Any]], Any],
     ) -> list:
         """Paginated GET returning mapped items."""
         all_items: list = []
@@ -80,7 +86,9 @@ class IdentityClient:
             total = data.get("total", 0)
             logger.debug(
                 "  Page offset=%d: got %d items (total=%d)",
-                offset, len(page_items), total,
+                offset,
+                len(page_items),
+                total,
             )
 
             all_items.extend(mapper(item) for item in page_items)
@@ -91,19 +99,24 @@ class IdentityClient:
         return all_items
 
     def list_trusted_certificate_authorities(
-        self, folder: str = "Prisma Access",
+        self,
+        folder: str = "Prisma Access",
     ) -> list[ScmPredefinedRoot]:
         """List all predefined trusted root CAs (paginated)."""
         url = f"{self._config.identity_url}/trusted-certificate-authorities"
         logger.debug("Listing trusted CAs from %s (folder=%s)", url, folder)
-        result = self._paginate(url, folder, lambda item: ScmPredefinedRoot(
-            name=item.get("name", ""),
-            common_name=item.get("common_name", "").strip(),
-            subject=item.get("subject", ""),
-            filename=item.get("filename", ""),
-            not_valid_after=item.get("not_valid_after", ""),
-            expiry_epoch=item.get("expiry_epoch", ""),
-        ))
+        result = self._paginate(
+            url,
+            folder,
+            lambda item: ScmPredefinedRoot(
+                name=item.get("name", ""),
+                common_name=item.get("common_name", "").strip(),
+                subject=item.get("subject", ""),
+                filename=item.get("filename", ""),
+                not_valid_after=item.get("not_valid_after", ""),
+                expiry_epoch=item.get("expiry_epoch", ""),
+            ),
+        )
         logger.info("Found %d predefined trusted root CAs.", len(result))
         return result
 
@@ -145,7 +158,10 @@ class IdentityClient:
         }
         logger.debug(
             "POST %s — name=%r folder=%r pem_length=%d",
-            url, name, folder, len(pem_text),
+            url,
+            name,
+            folder,
+            len(pem_text),
         )
         resp = self._session.post(
             url,
@@ -155,7 +171,9 @@ class IdentityClient:
         )
         logger.debug(
             "Response %d for cert %r: %s",
-            resp.status_code, name, resp.text,
+            resp.status_code,
+            name,
+            resp.text,
         )
         if resp.status_code == 409:
             raise ConflictError(f"Certificate '{name}' already exists", 409)

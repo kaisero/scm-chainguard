@@ -2,7 +2,11 @@
 
 import responses
 import pytest
-from scm_chainguard.scm.identity_client import CertificateImportError, ConflictError, IdentityClient
+from scm_chainguard.scm.identity_client import (
+    CertificateImportError,
+    ConflictError,
+    IdentityClient,
+)
 from tests.conftest import IDENTITY_URL, SAMPLE_PEM, TRUSTED_CA_URL
 
 
@@ -43,8 +47,10 @@ class TestListTrustedCertificateAuthorities:
     @responses.activate
     def test_returns_predefined_roots(self, sample_config, mock_auth):
         responses.add(
-            responses.GET, TRUSTED_CA_URL,
-            json=SAMPLE_TRUSTED_CA_RESPONSE, status=200,
+            responses.GET,
+            TRUSTED_CA_URL,
+            json=SAMPLE_TRUSTED_CA_RESPONSE,
+            status=200,
         )
         client = IdentityClient(sample_config, mock_auth)
         result = client.list_trusted_certificate_authorities()
@@ -60,17 +66,29 @@ class TestListTrustedCertificateAuthorities:
     def test_pagination(self, sample_config, mock_auth):
         page1 = {
             "data": [
-                {"name": f"root_{i}", "common_name": f"Root {i}", "snippet": "predefined"}
+                {
+                    "name": f"root_{i}",
+                    "common_name": f"Root {i}",
+                    "snippet": "predefined",
+                }
                 for i in range(200)
             ],
-            "total": 346, "limit": 200, "offset": 0,
+            "total": 346,
+            "limit": 200,
+            "offset": 0,
         }
         page2 = {
             "data": [
-                {"name": f"root_{i}", "common_name": f"Root {i}", "snippet": "predefined"}
+                {
+                    "name": f"root_{i}",
+                    "common_name": f"Root {i}",
+                    "snippet": "predefined",
+                }
                 for i in range(200, 346)
             ],
-            "total": 346, "limit": 200, "offset": 200,
+            "total": 346,
+            "limit": 200,
+            "offset": 200,
         }
         responses.add(responses.GET, TRUSTED_CA_URL, json=page1, status=200)
         responses.add(responses.GET, TRUSTED_CA_URL, json=page2, status=200)
@@ -81,21 +99,34 @@ class TestListTrustedCertificateAuthorities:
     @responses.activate
     def test_uses_bearer_auth(self, sample_config, mock_auth):
         responses.add(
-            responses.GET, TRUSTED_CA_URL,
-            json={"data": [], "total": 0, "limit": 200, "offset": 0}, status=200,
+            responses.GET,
+            TRUSTED_CA_URL,
+            json={"data": [], "total": 0, "limit": 200, "offset": 0},
+            status=200,
         )
         client = IdentityClient(sample_config, mock_auth)
         client.list_trusted_certificate_authorities()
         assert "Authorization" in responses.calls[0].request.headers
-        assert responses.calls[0].request.headers["Authorization"] == "Bearer test-token"
+        assert (
+            responses.calls[0].request.headers["Authorization"] == "Bearer test-token"
+        )
 
     @responses.activate
     def test_strips_common_name_whitespace(self, sample_config, mock_auth):
         responses.add(
-            responses.GET, TRUSTED_CA_URL,
+            responses.GET,
+            TRUSTED_CA_URL,
             json={
-                "data": [{"name": "test", "common_name": "  Padded CN  ", "snippet": "predefined"}],
-                "total": 1, "limit": 200, "offset": 0,
+                "data": [
+                    {
+                        "name": "test",
+                        "common_name": "  Padded CN  ",
+                        "snippet": "predefined",
+                    }
+                ],
+                "total": 1,
+                "limit": 200,
+                "offset": 0,
             },
             status=200,
         )
@@ -106,8 +137,10 @@ class TestListTrustedCertificateAuthorities:
     @responses.activate
     def test_empty_result(self, sample_config, mock_auth):
         responses.add(
-            responses.GET, TRUSTED_CA_URL,
-            json={"data": [], "total": 0, "limit": 200, "offset": 0}, status=200,
+            responses.GET,
+            TRUSTED_CA_URL,
+            json={"data": [], "total": 0, "limit": 200, "offset": 0},
+            status=200,
         )
         client = IdentityClient(sample_config, mock_auth)
         result = client.list_trusted_certificate_authorities()
@@ -118,10 +151,20 @@ class TestListCertificates:
     @responses.activate
     def test_single_page(self, sample_config, mock_auth):
         responses.add(
-            responses.GET, f"{IDENTITY_URL}/certificates",
+            responses.GET,
+            f"{IDENTITY_URL}/certificates",
             json={
-                "data": [{"id": "u1", "name": "cert-1", "folder": "All", "common_name": "Test"}],
-                "total": 1, "limit": 200, "offset": 0,
+                "data": [
+                    {
+                        "id": "u1",
+                        "name": "cert-1",
+                        "folder": "All",
+                        "common_name": "Test",
+                    }
+                ],
+                "total": 1,
+                "limit": 200,
+                "offset": 0,
             },
             status=200,
         )
@@ -133,20 +176,40 @@ class TestListCertificates:
     @responses.activate
     def test_pagination(self, sample_config, mock_auth):
         responses.add(
-            responses.GET, f"{IDENTITY_URL}/certificates",
+            responses.GET,
+            f"{IDENTITY_URL}/certificates",
             json={
-                "data": [{"id": f"u{i}", "name": f"cert-{i}", "folder": "All", "common_name": ""}
-                         for i in range(200)],
-                "total": 250, "limit": 200, "offset": 0,
+                "data": [
+                    {
+                        "id": f"u{i}",
+                        "name": f"cert-{i}",
+                        "folder": "All",
+                        "common_name": "",
+                    }
+                    for i in range(200)
+                ],
+                "total": 250,
+                "limit": 200,
+                "offset": 0,
             },
             status=200,
         )
         responses.add(
-            responses.GET, f"{IDENTITY_URL}/certificates",
+            responses.GET,
+            f"{IDENTITY_URL}/certificates",
             json={
-                "data": [{"id": f"u{i}", "name": f"cert-{i}", "folder": "All", "common_name": ""}
-                         for i in range(200, 250)],
-                "total": 250, "limit": 200, "offset": 200,
+                "data": [
+                    {
+                        "id": f"u{i}",
+                        "name": f"cert-{i}",
+                        "folder": "All",
+                        "common_name": "",
+                    }
+                    for i in range(200, 250)
+                ],
+                "total": 250,
+                "limit": 200,
+                "offset": 200,
             },
             status=200,
         )
@@ -159,7 +222,8 @@ class TestImportCertificate:
     @responses.activate
     def test_success(self, sample_config, mock_auth):
         responses.add(
-            responses.POST, f"{IDENTITY_URL}/certificates:import",
+            responses.POST,
+            f"{IDENTITY_URL}/certificates:import",
             json={"id": "new-id", "name": "test-cert"},
             status=200,
         )
@@ -170,7 +234,8 @@ class TestImportCertificate:
     @responses.activate
     def test_conflict_raises(self, sample_config, mock_auth):
         responses.add(
-            responses.POST, f"{IDENTITY_URL}/certificates:import",
+            responses.POST,
+            f"{IDENTITY_URL}/certificates:import",
             json={"_errors": [{"message": "Name Not Unique"}]},
             status=409,
         )
@@ -181,7 +246,8 @@ class TestImportCertificate:
     @responses.activate
     def test_error_raises(self, sample_config, mock_auth):
         responses.add(
-            responses.POST, f"{IDENTITY_URL}/certificates:import",
+            responses.POST,
+            f"{IDENTITY_URL}/certificates:import",
             json={"_errors": [{"message": "Invalid Object"}]},
             status=400,
         )
@@ -195,7 +261,8 @@ class TestDeleteCertificate:
     @responses.activate
     def test_success(self, sample_config, mock_auth):
         responses.add(
-            responses.DELETE, f"{IDENTITY_URL}/certificates/cert-123",
+            responses.DELETE,
+            f"{IDENTITY_URL}/certificates/cert-123",
             status=200,
         )
         client = IdentityClient(sample_config, mock_auth)
@@ -205,7 +272,8 @@ class TestDeleteCertificate:
     @responses.activate
     def test_error_raises(self, sample_config, mock_auth):
         responses.add(
-            responses.DELETE, f"{IDENTITY_URL}/certificates/cert-123",
+            responses.DELETE,
+            f"{IDENTITY_URL}/certificates/cert-123",
             json={"_errors": [{"message": "Not Found"}]},
             status=404,
         )
@@ -219,13 +287,21 @@ class TestListCertificatesIncludesPem:
     @responses.activate
     def test_pem_stored(self, sample_config, mock_auth):
         responses.add(
-            responses.GET, f"{IDENTITY_URL}/certificates",
+            responses.GET,
+            f"{IDENTITY_URL}/certificates",
             json={
-                "data": [{
-                    "id": "u1", "name": "cert-1", "folder": "All",
-                    "common_name": "Test", "public_key": SAMPLE_PEM,
-                }],
-                "total": 1, "limit": 200, "offset": 0,
+                "data": [
+                    {
+                        "id": "u1",
+                        "name": "cert-1",
+                        "folder": "All",
+                        "common_name": "Test",
+                        "public_key": SAMPLE_PEM,
+                    }
+                ],
+                "total": 1,
+                "limit": 200,
+                "offset": 0,
             },
             status=200,
         )
@@ -236,13 +312,21 @@ class TestListCertificatesIncludesPem:
     @responses.activate
     def test_no_pem_stored_as_none(self, sample_config, mock_auth):
         responses.add(
-            responses.GET, f"{IDENTITY_URL}/certificates",
+            responses.GET,
+            f"{IDENTITY_URL}/certificates",
             json={
-                "data": [{
-                    "id": "u1", "name": "cert-1", "folder": "All",
-                    "common_name": "Test", "public_key": "",
-                }],
-                "total": 1, "limit": 200, "offset": 0,
+                "data": [
+                    {
+                        "id": "u1",
+                        "name": "cert-1",
+                        "folder": "All",
+                        "common_name": "Test",
+                        "public_key": "",
+                    }
+                ],
+                "total": 1,
+                "limit": 200,
+                "offset": 0,
             },
             status=200,
         )

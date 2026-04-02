@@ -1,6 +1,5 @@
 """Tests for CLI interface."""
 
-import pytest
 from typer.testing import CliRunner
 from scm_chainguard.cli import app
 

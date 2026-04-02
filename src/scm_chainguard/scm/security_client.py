@@ -68,7 +68,9 @@ class SecurityClient:
             )
 
     def add_trusted_root_cas(
-        self, cert_names: list[str], dry_run: bool = False,
+        self,
+        cert_names: list[str],
+        dry_run: bool = False,
     ) -> list[str]:
         """Add certificate names to the trusted_root_CA list.
 
@@ -76,7 +78,9 @@ class SecurityClient:
         """
         settings = self.get_ssl_decryption_settings()
         if settings is None:
-            logger.error("Cannot update trusted roots: no SSL decryption settings found.")
+            logger.error(
+                "Cannot update trusted roots: no SSL decryption settings found."
+            )
             return []
 
         ssl_decrypt = settings.get("ssl_decrypt", {})
@@ -84,11 +88,15 @@ class SecurityClient:
         to_add = [n for n in cert_names if n not in current]
 
         if not to_add:
-            logger.info("All %d certificates are already in trusted_root_CA.", len(cert_names))
+            logger.info(
+                "All %d certificates are already in trusted_root_CA.", len(cert_names)
+            )
             return []
 
         if dry_run:
-            logger.info("[DRY-RUN] Would add %d certificates to trusted_root_CA.", len(to_add))
+            logger.info(
+                "[DRY-RUN] Would add %d certificates to trusted_root_CA.", len(to_add)
+            )
             return to_add
 
         new_list = sorted(current | set(to_add))
@@ -100,7 +108,9 @@ class SecurityClient:
         return to_add
 
     def remove_trusted_root_cas(
-        self, cert_names: list[str], dry_run: bool = False,
+        self,
+        cert_names: list[str],
+        dry_run: bool = False,
     ) -> list[str]:
         """Remove certificate names from the trusted_root_CA list.
 
@@ -108,7 +118,9 @@ class SecurityClient:
         """
         settings = self.get_ssl_decryption_settings()
         if settings is None:
-            logger.error("Cannot update trusted roots: no SSL decryption settings found.")
+            logger.error(
+                "Cannot update trusted roots: no SSL decryption settings found."
+            )
             return []
 
         ssl_decrypt = settings.get("ssl_decrypt", {})
@@ -117,11 +129,16 @@ class SecurityClient:
         to_remove = [n for n in current if n in names_to_remove]
 
         if not to_remove:
-            logger.info("None of the %d certificates are in trusted_root_CA.", len(cert_names))
+            logger.info(
+                "None of the %d certificates are in trusted_root_CA.", len(cert_names)
+            )
             return []
 
         if dry_run:
-            logger.info("[DRY-RUN] Would remove %d certificates from trusted_root_CA.", len(to_remove))
+            logger.info(
+                "[DRY-RUN] Would remove %d certificates from trusted_root_CA.",
+                len(to_remove),
+            )
             return to_remove
 
         new_list = [n for n in current if n not in names_to_remove]
@@ -129,5 +146,7 @@ class SecurityClient:
         settings["ssl_decrypt"] = ssl_decrypt
 
         self._put_settings(settings)
-        logger.info("Removed %d certificates from trusted_root_CA list.", len(to_remove))
+        logger.info(
+            "Removed %d certificates from trusted_root_CA list.", len(to_remove)
+        )
         return to_remove

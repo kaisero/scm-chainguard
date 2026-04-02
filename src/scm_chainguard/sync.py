@@ -8,7 +8,11 @@ from scm_chainguard.cert_utils import cert_import_name
 from scm_chainguard.config import ScmConfig
 from scm_chainguard.logging_setup import get_audit_logger
 from scm_chainguard.models import LocalCertificate, SyncResult
-from scm_chainguard.scm.identity_client import CertificateImportError, ConflictError, IdentityClient
+from scm_chainguard.scm.identity_client import (
+    CertificateImportError,
+    ConflictError,
+    IdentityClient,
+)
 from scm_chainguard.scm.security_client import SecurityClient
 
 logger = logging.getLogger(__name__)
@@ -53,23 +57,39 @@ def sync_certificates(
         name = cert_import_name(cert.filename)
 
         if dry_run:
-            audit.info("AUDIT: DRY_RUN would_import cert=%r folder=%r", name, config.cert_folder)
+            audit.info(
+                "AUDIT: DRY_RUN would_import cert=%r folder=%r",
+                name,
+                config.cert_folder,
+            )
             result.imported.append(name)
             continue
 
         try:
-            identity_client.import_certificate(name, cert.pem, folder=config.cert_folder)
-            audit.info("AUDIT: IMPORT cert=%r folder=%r status=success", name, config.cert_folder)
+            identity_client.import_certificate(
+                name, cert.pem, folder=config.cert_folder
+            )
+            audit.info(
+                "AUDIT: IMPORT cert=%r folder=%r status=success",
+                name,
+                config.cert_folder,
+            )
             result.imported.append(name)
         except ConflictError:
-            audit.info("AUDIT: IMPORT cert=%r status=skipped reason=already_exists", name)
+            audit.info(
+                "AUDIT: IMPORT cert=%r status=skipped reason=already_exists", name
+            )
             result.skipped.append(name)
         except CertificateImportError as e:
             if any(skip in str(e) for skip in SKIP_ERRORS):
-                audit.info("AUDIT: IMPORT cert=%r status=skipped reason=%r", name, str(e))
+                audit.info(
+                    "AUDIT: IMPORT cert=%r status=skipped reason=%r", name, str(e)
+                )
                 result.skipped.append(name)
             else:
-                audit.warning("AUDIT: IMPORT cert=%r status=failed error=%r", name, str(e))
+                audit.warning(
+                    "AUDIT: IMPORT cert=%r status=failed error=%r", name, str(e)
+                )
                 result.failed.append((name, str(e)))
 
         if not dry_run and i % 50 == 0:
