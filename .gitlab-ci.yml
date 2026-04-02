@@ -1,6 +1,7 @@
 stages:
   - lint
   - test
+  - publish
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
@@ -16,10 +17,9 @@ lint:
   extends: .python-base
   stage: lint
   script:
-    - pip install ruff flake8 flake8-docstrings
+    - pip install ruff
     - ruff check src/ tests/
     - ruff format --check src/ tests/
-    - flake8 src/ tests/
 
 test:
   extends: .python-base
@@ -32,3 +32,18 @@ test:
     reports:
       junit: report.xml
     expire_in: 30 days
+
+publish:
+  extends: .python-base
+  stage: publish
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - VERSION
+  script:
+    - pip install build twine
+    - python -m build
+    - twine upload dist/*
+  variables:
+    TWINE_USERNAME: $PYPI_USERNAME
+    TWINE_PASSWORD: $PYPI_PASSWORD

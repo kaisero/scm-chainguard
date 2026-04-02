@@ -10,31 +10,12 @@ import requests
 from scm_chainguard.cert_utils import pem_to_base64, pem_to_sha256
 from scm_chainguard.config import ScmConfig
 from scm_chainguard.models import ScmImportedCert, ScmPredefinedRoot
+from scm_chainguard.scm import extract_error_message
 from scm_chainguard.scm.auth import ScmAuthenticator
 
 logger = logging.getLogger(__name__)
 
-
-def _extract_error_message(resp: requests.Response) -> str:
-    """Extract the most detailed error message from an SCM API error response."""
-    msg = resp.text
-    try:
-        body = resp.json()
-        errors = body.get("_errors", [])
-        if errors:
-            error = errors[0]
-            details = error.get("details", {})
-            detail_errors = details.get("errors", []) if isinstance(details, dict) else []
-            if detail_errors:
-                msgs = [d.get("msg", "") or d.get("message", "") for d in detail_errors]
-                msg = "; ".join(m for m in msgs if m) or error.get("message", msg)
-            else:
-                msg = error.get("message", msg)
-            if isinstance(details, dict) and details:
-                msg = f"{msg} (details: {details})"
-    except Exception:
-        pass
-    return msg
+DEFAULT_PAGE_SIZE = 200
 
 
 class CertificateImportError(Exception):
@@ -47,6 +28,7 @@ class CertificateImportError(Exception):
 
 class ConflictError(CertificateImportError):
     """Raised on 409 Conflict (certificate already exists)."""
+
     pass
 
 
@@ -58,13 +40,25 @@ class IdentityClient:
         self._auth = auth
         self._session = requests.Session()
 
+    def close(self) -> None:
+        self._session.close()
+
+    def __enter__(self) -> IdentityClient:
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
+
     def _paginate(
-        self, url: str, folder: str, mapper: Callable[[dict[str, Any]], Any],
+        self,
+        url: str,
+        folder: str,
+        mapper: Callable[[dict[str, Any]], Any],
     ) -> list:
         """Paginated GET returning mapped items."""
         all_items: list = []
         offset = 0
-        limit = 200
+        limit = DEFAULT_PAGE_SIZE
 
         while True:
             resp = self._session.get(
@@ -80,7 +74,9 @@ class IdentityClient:
             total = data.get("total", 0)
             logger.debug(
                 "  Page offset=%d: got %d items (total=%d)",
-                offset, len(page_items), total,
+                offset,
+                len(page_items),
+                total,
             )
 
             all_items.extend(mapper(item) for item in page_items)
@@ -91,19 +87,24 @@ class IdentityClient:
         return all_items
 
     def list_trusted_certificate_authorities(
-        self, folder: str = "Prisma Access",
+        self,
+        folder: str = "Prisma Access",
     ) -> list[ScmPredefinedRoot]:
         """List all predefined trusted root CAs (paginated)."""
         url = f"{self._config.identity_url}/trusted-certificate-authorities"
         logger.debug("Listing trusted CAs from %s (folder=%s)", url, folder)
-        result = self._paginate(url, folder, lambda item: ScmPredefinedRoot(
-            name=item.get("name", ""),
-            common_name=item.get("common_name", "").strip(),
-            subject=item.get("subject", ""),
-            filename=item.get("filename", ""),
-            not_valid_after=item.get("not_valid_after", ""),
-            expiry_epoch=item.get("expiry_epoch", ""),
-        ))
+        result = self._paginate(
+            url,
+            folder,
+            lambda item: ScmPredefinedRoot(
+                name=item.get("name", ""),
+                common_name=item.get("common_name", "").strip(),
+                subject=item.get("subject", ""),
+                filename=item.get("filename", ""),
+                not_valid_after=item.get("not_valid_after", ""),
+                expiry_epoch=item.get("expiry_epoch", ""),
+            ),
+        )
         logger.info("Found %d predefined trusted root CAs.", len(result))
         return result
 
@@ -145,7 +146,10 @@ class IdentityClient:
         }
         logger.debug(
             "POST %s — name=%r folder=%r pem_length=%d",
-            url, name, folder, len(pem_text),
+            url,
+            name,
+            folder,
+            len(pem_text),
         )
         resp = self._session.post(
             url,
@@ -155,13 +159,15 @@ class IdentityClient:
         )
         logger.debug(
             "Response %d for cert %r: %s",
-            resp.status_code, name, resp.text,
+            resp.status_code,
+            name,
+            resp.text,
         )
         if resp.status_code == 409:
             raise ConflictError(f"Certificate '{name}' already exists", 409)
         if not resp.ok:
             raise CertificateImportError(
-                f"HTTP {resp.status_code}: {_extract_error_message(resp)}",
+                f"HTTP {resp.status_code}: {extract_error_message(resp)}",
                 resp.status_code,
             )
 
@@ -179,7 +185,7 @@ class IdentityClient:
         )
         if not resp.ok:
             raise CertificateImportError(
-                f"HTTP {resp.status_code}: {_extract_error_message(resp)}",
+                f"HTTP {resp.status_code}: {extract_error_message(resp)}",
                 resp.status_code,
             )
         logger.debug("Deleted certificate %s.", cert_id)

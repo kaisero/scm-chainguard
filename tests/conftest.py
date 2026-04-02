@@ -32,6 +32,7 @@ TRUSTED_CA_URL = f"{IDENTITY_URL}/trusted-certificate-authorities"
 @pytest.fixture
 def sample_config():
     from scm_chainguard.config import ScmConfig
+
     return ScmConfig(
         client_id="test-id",
         client_secret="test-secret",
@@ -43,6 +44,7 @@ def sample_config():
 def mock_auth(sample_config):
     """Return a pre-authenticated ScmAuthenticator with a fake token."""
     from scm_chainguard.scm.auth import ScmAuthenticator
+
     auth = ScmAuthenticator(sample_config)
     auth._token = "test-token"
     auth._expires_at = 9999999999
@@ -52,8 +54,10 @@ def mock_auth(sample_config):
 def mock_auth_response():
     """Add a mock auth token response to the responses library."""
     import responses
+
     responses.add(
-        responses.POST, AUTH_URL,
+        responses.POST,
+        AUTH_URL,
         json={"access_token": "test-token", "expires_in": 900},
         status=200,
     )

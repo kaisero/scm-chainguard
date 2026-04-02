@@ -20,7 +20,9 @@ logger = logging.getLogger(__name__)
 
 
 def _save_certs(
-    all_certs: dict, cert_type: CertType, directory: Path,
+    all_certs: dict,
+    cert_type: CertType,
+    directory: Path,
 ) -> int:
     """Save certificates of a given type to directory, returning count."""
     directory.mkdir(parents=True, exist_ok=True)
@@ -111,10 +113,7 @@ def run_sync(
     results: dict[str, SyncResult] = {}
 
     root_comp = comparisons["roots"]
-    ensure_trusted = [
-        scm_name for _, scm_name in root_comp.present
-        if scm_name.startswith(CERT_PREFIX)
-    ]
+    ensure_trusted = [scm_name for _, scm_name in root_comp.present if scm_name.startswith(CERT_PREFIX)]
     if ensure_trusted:
         logger.info(
             "Found %d already-imported CG_ certificates to ensure in trusted root CA list.",
@@ -125,8 +124,12 @@ def run_sync(
         if root_comp.missing:
             logger.info("Syncing %d missing root certificates...", len(root_comp.missing))
         results["roots"] = sync_certificates(
-            root_comp.missing, identity, security, config,
-            dry_run=dry_run, add_as_trusted_root=True,
+            root_comp.missing,
+            identity,
+            security,
+            config,
+            dry_run=dry_run,
+            add_as_trusted_root=True,
             ensure_trusted=ensure_trusted,
         )
     else:
@@ -138,8 +141,12 @@ def run_sync(
         if int_comp.missing:
             logger.info("Syncing %d missing intermediate certificates...", len(int_comp.missing))
             results["intermediates"] = sync_certificates(
-                int_comp.missing, identity, security, config,
-                dry_run=dry_run, add_as_trusted_root=False,
+                int_comp.missing,
+                identity,
+                security,
+                config,
+                dry_run=dry_run,
+                add_as_trusted_root=False,
             )
         else:
             logger.info("All intermediate certificates are already present in SCM.")
@@ -154,8 +161,11 @@ def run_full_pipeline(
     dry_run: bool = False,
 ) -> dict:
     """Full pipeline: fetch -> compare -> sync."""
-    logger.info("Starting full pipeline (include_intermediates=%s, dry_run=%s)",
-                include_intermediates, dry_run)
+    logger.info(
+        "Starting full pipeline (include_intermediates=%s, dry_run=%s)",
+        include_intermediates,
+        dry_run,
+    )
 
     logger.info("=" * 60)
     logger.info("STEP 1: Fetching certificates from CCADB")
@@ -195,7 +205,7 @@ def run_cleanup(config: ScmConfig, dry_run: bool = False) -> CleanupResult:
             if is_cert_expired(cert.pem):
                 expired.append(cert)
         except Exception as e:
-            logger.warning("Could not parse cert %r: %s", cert.name, e)
+            logger.warning("Could not parse cert %r: %s", cert.name, e, exc_info=True)
 
     if not expired:
         logger.info("No expired CG_-managed certificates found.")
@@ -221,7 +231,12 @@ def run_cleanup(config: ScmConfig, dry_run: bool = False) -> CleanupResult:
             audit.info("AUDIT: DELETE cert=%r id=%s status=success", cert.name, cert.id)
             result.deleted.append(cert.name)
         except Exception as e:
-            audit.warning("AUDIT: DELETE cert=%r id=%s status=failed error=%r", cert.name, cert.id, str(e))
+            audit.warning(
+                "AUDIT: DELETE cert=%r id=%s status=failed error=%r",
+                cert.name,
+                cert.id,
+                str(e),
+            )
             result.failed.append((cert.name, str(e)))
 
     logger.info(

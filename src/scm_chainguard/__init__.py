@@ -1,3 +1,8 @@
 """scm-chainguard: Manage Chrome-trusted CA certificates in Strata Cloud Manager."""
 
-__version__ = "0.1.0"
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("scm-chainguard")
+except PackageNotFoundError:
+    __version__ = "0.0.0"

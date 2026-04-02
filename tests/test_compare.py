@@ -1,25 +1,33 @@
 """Tests for comparison logic."""
 
-import pytest
 from scm_chainguard.compare import compare_intermediates, compare_roots
 from scm_chainguard.models import (
-    CertType, LocalCertificate, ScmImportedCert, ScmPredefinedRoot,
+    CertType,
+    LocalCertificate,
+    ScmImportedCert,
+    ScmPredefinedRoot,
 )
 
 
 def _local_root(cn: str, sha: str = "AA00") -> LocalCertificate:
     return LocalCertificate(
-        filepath=f"/tmp/{cn}.pem", filename=f"{cn}.pem",
-        common_name=cn, sha256_fingerprint=sha,
-        pem="---PEM---", cert_type=CertType.ROOT,
+        filepath=f"/tmp/{cn}.pem",
+        filename=f"{cn}.pem",
+        common_name=cn,
+        sha256_fingerprint=sha,
+        pem="---PEM---",
+        cert_type=CertType.ROOT,
     )
 
 
 def _local_int(cn: str, sha: str = "BB00") -> LocalCertificate:
     return LocalCertificate(
-        filepath=f"/tmp/{cn}.pem", filename=f"{cn}.pem",
-        common_name=cn, sha256_fingerprint=sha,
-        pem="---PEM---", cert_type=CertType.INTERMEDIATE,
+        filepath=f"/tmp/{cn}.pem",
+        filename=f"{cn}.pem",
+        common_name=cn,
+        sha256_fingerprint=sha,
+        pem="---PEM---",
+        cert_type=CertType.INTERMEDIATE,
     )
 
 
