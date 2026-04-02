@@ -27,6 +27,15 @@ class ScmAuthenticator:
         self._expires_at: float = 0
         self._session = requests.Session()
 
+    def close(self) -> None:
+        self._session.close()
+
+    def __enter__(self) -> ScmAuthenticator:
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
+
     def get_token(self) -> str:
         """Return a valid token, refreshing if needed."""
         if self._token and time.time() < self._expires_at:

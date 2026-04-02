@@ -10,15 +10,23 @@ from tests.conftest import AUTH_URL
 class TestScmAuthenticator:
     @responses.activate
     def test_authenticate_success(self, sample_config):
-        responses.add(responses.POST, AUTH_URL,
-                       json={"access_token": "tok-1", "expires_in": 900}, status=200)
+        responses.add(
+            responses.POST,
+            AUTH_URL,
+            json={"access_token": "tok-1", "expires_in": 900},
+            status=200,
+        )
         auth = ScmAuthenticator(sample_config)
         assert auth.get_token() == "tok-1"
 
     @responses.activate
     def test_token_caching(self, sample_config):
-        responses.add(responses.POST, AUTH_URL,
-                       json={"access_token": "tok-1", "expires_in": 900}, status=200)
+        responses.add(
+            responses.POST,
+            AUTH_URL,
+            json={"access_token": "tok-1", "expires_in": 900},
+            status=200,
+        )
         auth = ScmAuthenticator(sample_config)
         auth.get_token()
         auth.get_token()
@@ -26,10 +34,18 @@ class TestScmAuthenticator:
 
     @responses.activate
     def test_token_refresh_on_expiry(self, sample_config):
-        responses.add(responses.POST, AUTH_URL,
-                       json={"access_token": "tok-1", "expires_in": 1}, status=200)
-        responses.add(responses.POST, AUTH_URL,
-                       json={"access_token": "tok-2", "expires_in": 900}, status=200)
+        responses.add(
+            responses.POST,
+            AUTH_URL,
+            json={"access_token": "tok-1", "expires_in": 1},
+            status=200,
+        )
+        responses.add(
+            responses.POST,
+            AUTH_URL,
+            json={"access_token": "tok-2", "expires_in": 900},
+            status=200,
+        )
         auth = ScmAuthenticator(sample_config)
         auth.get_token()
         auth._expires_at = time.time() - 10  # force expiry

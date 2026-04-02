@@ -1,6 +1,5 @@
 """Tests for CCADB CSV parser."""
 
-import pytest
 from scm_chainguard.ccadb.parser import attach_pems, parse_metadata
 from scm_chainguard.models import CertType
 
@@ -68,17 +67,17 @@ class TestParseMetadata:
 
 
 class TestAttachPems:
-    PEM_CSV = (
-        "SHA-256 Fingerprint,X.509 Certificate (PEM)\r\n"
-        "AAAA0001,-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\r\n"
-    )
+    PEM_CSV = "SHA-256 Fingerprint,X.509 Certificate (PEM)\r\nAAAA0001,-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\r\n"
 
     def test_attaches_pem(self):
         from scm_chainguard.models import CcadbCertificate, CertType
+
         certs = {
             "AAAA0001": CcadbCertificate(
-                sha256_fingerprint="AAAA0001", common_name="Root A",
-                ca_owner="Org", cert_type=CertType.ROOT,
+                sha256_fingerprint="AAAA0001",
+                common_name="Root A",
+                ca_owner="Org",
+                cert_type=CertType.ROOT,
             )
         }
         result = attach_pems(certs, [self.PEM_CSV])
@@ -87,10 +86,13 @@ class TestAttachPems:
 
     def test_missing_pem_excluded(self):
         from scm_chainguard.models import CcadbCertificate, CertType
+
         certs = {
             "ZZZZ9999": CcadbCertificate(
-                sha256_fingerprint="ZZZZ9999", common_name="Missing",
-                ca_owner="Org", cert_type=CertType.ROOT,
+                sha256_fingerprint="ZZZZ9999",
+                common_name="Missing",
+                ca_owner="Org",
+                cert_type=CertType.ROOT,
             )
         }
         result = attach_pems(certs, [self.PEM_CSV])
