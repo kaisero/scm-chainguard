@@ -261,11 +261,7 @@ def revoke(
         typer.echo("No distrusted CG_-managed certificates found.")
         return
 
-    typer.echo(
-        f"\n{prefix}Revoke: {len(result.deleted)} deleted, "
-        f"{len(result.removed_from_trusted)} removed from trusted root CA list, "
-        f"{len(result.failed)} failed"
-    )
+    typer.echo(f"\n{prefix}Revoke: {len(result.deleted)} deleted, {len(result.removed_from_trusted)} removed from trusted root CA list, {len(result.failed)} failed")
     for name in result.deleted:
         typer.echo(f"  {prefix}REVOKED: {name}")
     for name, error in result.failed:

@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from dataclasses import replace
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
-import pytest
 from scm_chainguard.cert_utils import sanitize_filename
 from scm_chainguard.models import (
     CcadbCertificate,
@@ -15,7 +14,6 @@ from scm_chainguard.models import (
     ComparisonResult,
     LocalCertificate,
     ScmImportedCert,
-    ScmPredefinedRoot,
     SyncResult,
     TrustStore,
 )
@@ -28,7 +26,7 @@ from scm_chainguard.pipeline import (
     run_revoke,
     run_sync,
 )
-from tests.conftest import SAMPLE_PEM, SAMPLE_PEM_NO_NEWLINE, SAMPLE_SHA256
+from tests.conftest import SAMPLE_PEM, SAMPLE_PEM_NO_NEWLINE
 
 
 # ---------------------------------------------------------------------------
@@ -91,12 +89,8 @@ class TestSaveCerts:
         assert (tmp_path / expected).exists()
 
     def test_mixed_types_count(self, tmp_path):
-        certs = {
-            f"R{i}": self._cert(f"Root {i}", f"R{i}", CertType.ROOT) for i in range(3)
-        }
-        certs.update({
-            f"I{i}": self._cert(f"Int {i}", f"I{i}", CertType.INTERMEDIATE) for i in range(2)
-        })
+        certs = {f"R{i}": self._cert(f"Root {i}", f"R{i}", CertType.ROOT) for i in range(3)}
+        certs.update({f"I{i}": self._cert(f"Int {i}", f"I{i}", CertType.INTERMEDIATE) for i in range(2)})
         assert _save_certs(certs, CertType.ROOT, tmp_path) == 3
         assert _save_certs(certs, CertType.INTERMEDIATE, tmp_path) == 2
 
@@ -574,9 +568,7 @@ class TestRunCleanup:
         MockSecurity.return_value.remove_trusted_root_cas.return_value = ["CG_Expired"]
 
         result = run_cleanup(sample_config)
-        MockSecurity.return_value.remove_trusted_root_cas.assert_called_once_with(
-            ["CG_Expired"], dry_run=False
-        )
+        MockSecurity.return_value.remove_trusted_root_cas.assert_called_once_with(["CG_Expired"], dry_run=False)
         assert "CG_Expired" in result.removed_from_trusted
 
     @patch("scm_chainguard.cert_utils.is_cert_expired", return_value=True)
@@ -802,9 +794,7 @@ class TestRunRevoke:
         MockSecurity.return_value.remove_trusted_root_cas.return_value = ["CG_Revoked"]
 
         result = run_revoke(sample_config)
-        MockSecurity.return_value.remove_trusted_root_cas.assert_called_once_with(
-            ["CG_Revoked"], dry_run=False
-        )
+        MockSecurity.return_value.remove_trusted_root_cas.assert_called_once_with(["CG_Revoked"], dry_run=False)
         assert "CG_Revoked" in result.removed_from_trusted
 
     @patch("scm_chainguard.pipeline.collect_distrusted_fingerprints")

@@ -143,16 +143,12 @@ class TestMultiStore:
         assert "DDDD0004" not in roots  # revoked
 
     def test_all_store_intermediates(self):
-        roots, intermediates = parse_metadata(
-            METADATA_CSV, include_intermediates=True, trust_store=TrustStore.ALL
-        )
+        roots, intermediates = parse_metadata(METADATA_CSV, include_intermediates=True, trust_store=TrustStore.ALL)
         assert "EEEE0005" in intermediates
         assert "2222BBBB" in intermediates
 
     def test_intermediates_with_mozilla(self):
-        roots, intermediates = parse_metadata(
-            METADATA_CSV, include_intermediates=True, trust_store=TrustStore.MOZILLA
-        )
+        roots, intermediates = parse_metadata(METADATA_CSV, include_intermediates=True, trust_store=TrustStore.MOZILLA)
         assert "AAAA0001" in roots
         assert "EEEE0005" in intermediates
 

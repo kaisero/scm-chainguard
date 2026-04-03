@@ -1,7 +1,6 @@
 """Tests for logging configuration."""
 
 import logging
-from pathlib import Path
 
 import pytest
 from scm_chainguard.logging_setup import AUDIT_LOGGER, configure_logging, get_audit_logger
@@ -48,10 +47,7 @@ class TestConfigureLogging:
     def test_file_handler_level_is_debug(self, tmp_path):
         log_file = tmp_path / "test.log"
         configure_logging(log_file=log_file)
-        file_handler = [
-            h for h in logging.getLogger("scm_chainguard").handlers
-            if isinstance(h, logging.FileHandler)
-        ][0]
+        file_handler = [h for h in logging.getLogger("scm_chainguard").handlers if isinstance(h, logging.FileHandler)][0]
         assert file_handler.level == logging.DEBUG
 
     def test_clears_previous_handlers(self):

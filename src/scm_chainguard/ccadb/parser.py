@@ -15,20 +15,14 @@ logger = logging.getLogger(__name__)
 def _is_included(row: dict[str, str], trust_store: TrustStore) -> bool:
     """Check if a row's status is 'Included' for the given store (or any store if ALL)."""
     if trust_store == TrustStore.ALL:
-        return any(
-            row.get(s.status_column, "").strip() == "Included"
-            for s in TrustStore.individual_stores()
-        )
+        return any(row.get(s.status_column, "").strip() == "Included" for s in TrustStore.individual_stores())
     return row.get(trust_store.status_column, "").strip() == "Included"
 
 
 def _is_trusted(row: dict[str, str], trust_store: TrustStore) -> bool:
     """Check if a row's status is 'Included' or 'Trusted' for the given store (or any store if ALL)."""
     if trust_store == TrustStore.ALL:
-        return any(
-            row.get(s.status_column, "").strip() in ("Included", "Trusted")
-            for s in TrustStore.individual_stores()
-        )
+        return any(row.get(s.status_column, "").strip() in ("Included", "Trusted") for s in TrustStore.individual_stores())
     return row.get(trust_store.status_column, "").strip() in ("Included", "Trusted")
 
 
