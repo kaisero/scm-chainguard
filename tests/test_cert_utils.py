@@ -87,6 +87,50 @@ class TestCertImportName:
         assert result.endswith("_AABB1122")
 
 
+class TestLoadLocalCerts:
+    def test_empty_directory(self, tmp_path):
+        from scm_chainguard.cert_utils import load_local_certs
+        from scm_chainguard.models import CertType
+
+        result = load_local_certs(tmp_path, CertType.ROOT)
+        assert result == []
+
+    def test_nonexistent_directory(self, tmp_path):
+        from scm_chainguard.cert_utils import load_local_certs
+        from scm_chainguard.models import CertType
+
+        result = load_local_certs(tmp_path / "no_such_dir", CertType.ROOT)
+        assert result == []
+
+    def test_reads_pem_files(self, tmp_path):
+        from scm_chainguard.cert_utils import load_local_certs
+        from scm_chainguard.models import CertType
+
+        (tmp_path / "test_cert_AABB1122.pem").write_text(SAMPLE_PEM)
+        result = load_local_certs(tmp_path, CertType.ROOT)
+        assert len(result) == 1
+        assert result[0].common_name == SAMPLE_CN
+        assert result[0].sha256_fingerprint == SAMPLE_SHA256
+        assert result[0].cert_type == CertType.ROOT
+
+    def test_ignores_non_pem_files(self, tmp_path):
+        from scm_chainguard.cert_utils import load_local_certs
+        from scm_chainguard.models import CertType
+
+        (tmp_path / "readme.txt").write_text("not a cert")
+        (tmp_path / "test_AABB1122.pem").write_text(SAMPLE_PEM)
+        result = load_local_certs(tmp_path, CertType.ROOT)
+        assert len(result) == 1
+
+    def test_invalid_pem_raises(self, tmp_path):
+        from scm_chainguard.cert_utils import load_local_certs
+        from scm_chainguard.models import CertType
+
+        (tmp_path / "bad_AABB1122.pem").write_text("not a real PEM")
+        with pytest.raises(ValueError):
+            load_local_certs(tmp_path, CertType.ROOT)
+
+
 class TestIsCertExpired:
     def test_known_valid_cert(self):
         # Sectigo cert is valid until 2046

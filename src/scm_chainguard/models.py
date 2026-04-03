@@ -11,6 +11,32 @@ class CertType(Enum):
     INTERMEDIATE = "intermediate"
 
 
+class TrustStore(str, Enum):
+    CHROME = "chrome"
+    MOZILLA = "mozilla"
+    MICROSOFT = "microsoft"
+    APPLE = "apple"
+    ALL = "all"
+
+    @property
+    def status_column(self) -> str:
+        if self == TrustStore.ALL:
+            raise ValueError("ALL has no single status column; iterate individual_stores() instead.")
+        return _STORE_COLUMNS[self]
+
+    @staticmethod
+    def individual_stores() -> list[TrustStore]:
+        return [s for s in TrustStore if s != TrustStore.ALL]
+
+
+_STORE_COLUMNS: dict[TrustStore, str] = {
+    TrustStore.CHROME: "Chrome Status",
+    TrustStore.MOZILLA: "Mozilla Status",
+    TrustStore.MICROSOFT: "Microsoft Status",
+    TrustStore.APPLE: "Apple Status",
+}
+
+
 @dataclass(frozen=True, slots=True)
 class CcadbCertificate:
     """A certificate record from CCADB metadata."""

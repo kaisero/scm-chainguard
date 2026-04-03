@@ -6,11 +6,11 @@ import logging
 from pathlib import Path
 
 from scm_chainguard.ccadb.client import CcadbClient
-from scm_chainguard.ccadb.parser import attach_pems, parse_metadata
+from scm_chainguard.ccadb.parser import attach_pems, collect_distrusted_fingerprints, parse_metadata
 from scm_chainguard.cert_utils import CERT_PREFIX, load_local_certs, sanitize_filename
 from scm_chainguard.compare import compare_intermediates, compare_roots
 from scm_chainguard.config import ScmConfig
-from scm_chainguard.models import CertType, CleanupResult, ComparisonResult, SyncResult
+from scm_chainguard.models import CertType, CleanupResult, ComparisonResult, SyncResult, TrustStore
 from scm_chainguard.scm.auth import ScmAuthenticator
 from scm_chainguard.scm.identity_client import IdentityClient
 from scm_chainguard.scm.security_client import SecurityClient
@@ -37,15 +37,19 @@ def _save_certs(
     return count
 
 
-def run_fetch(config: ScmConfig, include_intermediates: bool = False) -> dict[str, Path]:
-    """Download Chrome-trusted certificates from CCADB and save to output directory."""
+def run_fetch(
+    config: ScmConfig,
+    include_intermediates: bool = False,
+    trust_store: TrustStore = TrustStore.CHROME,
+) -> dict[str, Path]:
+    """Download trusted certificates from CCADB and save to output directory."""
     output = Path(config.output_dir)
     roots_dir = output / "roots"
 
     ccadb = CcadbClient(timeout=config.request_timeout)
 
     metadata_csv = ccadb.download_metadata_csv()
-    roots, intermediates = parse_metadata(metadata_csv, include_intermediates)
+    roots, intermediates = parse_metadata(metadata_csv, include_intermediates, trust_store=trust_store)
 
     all_certs = {**roots, **intermediates}
     logger.info("Need PEM data for %d certificates.", len(all_certs))
@@ -70,6 +74,7 @@ def run_compare(
     config: ScmConfig,
     include_intermediates: bool = False,
     *,
+    trust_store: TrustStore = TrustStore.CHROME,
     auth: ScmAuthenticator | None = None,
     identity: IdentityClient | None = None,
 ) -> dict[str, ComparisonResult]:
@@ -102,13 +107,14 @@ def run_sync(
     config: ScmConfig,
     include_intermediates: bool = False,
     dry_run: bool = False,
+    trust_store: TrustStore = TrustStore.CHROME,
 ) -> dict[str, SyncResult]:
     """Compare and sync missing certificates to SCM."""
     auth = ScmAuthenticator(config)
     identity = IdentityClient(config, auth)
     security = SecurityClient(config, auth)
 
-    comparisons = run_compare(config, include_intermediates, auth=auth, identity=identity)
+    comparisons = run_compare(config, include_intermediates, trust_store=trust_store, auth=auth, identity=identity)
 
     results: dict[str, SyncResult] = {}
 
@@ -159,10 +165,12 @@ def run_full_pipeline(
     config: ScmConfig,
     include_intermediates: bool = False,
     dry_run: bool = False,
+    trust_store: TrustStore = TrustStore.CHROME,
 ) -> dict:
     """Full pipeline: fetch -> compare -> sync."""
     logger.info(
-        "Starting full pipeline (include_intermediates=%s, dry_run=%s)",
+        "Starting full pipeline (store=%s, include_intermediates=%s, dry_run=%s)",
+        trust_store.value,
         include_intermediates,
         dry_run,
     )
@@ -170,12 +178,12 @@ def run_full_pipeline(
     logger.info("=" * 60)
     logger.info("STEP 1: Fetching certificates from CCADB")
     logger.info("=" * 60)
-    fetch_result = run_fetch(config, include_intermediates)
+    fetch_result = run_fetch(config, include_intermediates, trust_store=trust_store)
 
     logger.info("=" * 60)
     logger.info("STEP 2: Comparing and syncing with SCM")
     logger.info("=" * 60)
-    sync_results = run_sync(config, include_intermediates, dry_run)
+    sync_results = run_sync(config, include_intermediates, dry_run, trust_store=trust_store)
 
     return {"fetch": fetch_result, "sync": sync_results}
 
@@ -241,6 +249,80 @@ def run_cleanup(config: ScmConfig, dry_run: bool = False) -> CleanupResult:
 
     logger.info(
         "Cleanup complete: %d removed from trusted list, %d deleted, %d failed.",
+        len(result.removed_from_trusted),
+        len(result.deleted),
+        len(result.failed),
+    )
+    return result
+
+
+def run_revoke(
+    config: ScmConfig,
+    dry_run: bool = False,
+    trust_store: TrustStore = TrustStore.CHROME,
+) -> CleanupResult:
+    """Remove CG_-managed certificates from SCM that are distrusted (Removed/Blocked) in CCADB."""
+    from scm_chainguard.logging_setup import get_audit_logger
+
+    audit = get_audit_logger()
+    result = CleanupResult(dry_run=dry_run)
+
+    # 1. Fetch distrusted fingerprints from CCADB
+    ccadb = CcadbClient(timeout=config.request_timeout)
+    metadata_csv = ccadb.download_metadata_csv()
+    distrusted = collect_distrusted_fingerprints(metadata_csv, trust_store)
+    if not distrusted:
+        logger.info("No distrusted certificates found in CCADB for store '%s'.", trust_store.value)
+        return result
+
+    # 2. Fetch CG_-managed certs from SCM
+    auth = ScmAuthenticator(config)
+    identity = IdentityClient(config, auth)
+    security = SecurityClient(config, auth)
+
+    all_certs = identity.list_certificates()
+    managed = [c for c in all_certs if c.name.startswith(CERT_PREFIX)]
+    logger.info("Found %d CG_-managed certificates (of %d total).", len(managed), len(all_certs))
+
+    # 3. Intersect: managed certs whose SHA-256 is in the distrusted set
+    to_revoke = [c for c in managed if c.sha256_fingerprint and c.sha256_fingerprint in distrusted]
+
+    if not to_revoke:
+        logger.info("No CG_-managed certificates match distrusted CCADB entries.")
+        return result
+
+    logger.info(
+        "%s %d distrusted certificates...",
+        "[DRY-RUN] Would revoke" if dry_run else "Revoking",
+        len(to_revoke),
+    )
+
+    # 4. Remove from trusted root CA list
+    revoke_names = [c.name for c in to_revoke]
+    removed = security.remove_trusted_root_cas(revoke_names, dry_run=dry_run)
+    result.removed_from_trusted = removed
+
+    # 5. Delete certificate objects
+    for cert in to_revoke:
+        if dry_run:
+            audit.info("AUDIT: DRY_RUN would_delete cert=%r id=%s reason=distrusted", cert.name, cert.id)
+            result.deleted.append(cert.name)
+            continue
+        try:
+            identity.delete_certificate(cert.id)
+            audit.info("AUDIT: DELETE cert=%r id=%s status=success reason=distrusted", cert.name, cert.id)
+            result.deleted.append(cert.name)
+        except Exception as e:
+            audit.warning(
+                "AUDIT: DELETE cert=%r id=%s status=failed error=%r",
+                cert.name,
+                cert.id,
+                str(e),
+            )
+            result.failed.append((cert.name, str(e)))
+
+    logger.info(
+        "Revoke complete: %d removed from trusted list, %d deleted, %d failed.",
         len(result.removed_from_trusted),
         len(result.deleted),
         len(result.failed),
