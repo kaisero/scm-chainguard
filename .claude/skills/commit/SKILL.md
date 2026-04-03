@@ -1,13 +1,13 @@
 ---
-name: pre-commit
-description: Run linting (ruff check + ruff format) and tests (pytest) before committing. Use this skill before every commit to catch CI failures early.
+name: commit
+description: Run linting, formatting, and tests, then commit if everything passes. Use instead of manual git commit.
 allowed-tools: Bash, Read, Edit, Glob, Grep
 user-invocable: true
 ---
 
-# Pre-Commit Checks
+# Commit
 
-Run the same lint and test checks as the GitLab CI pipeline before committing.
+Run the GitLab CI checks locally, then commit all staged and unstaged changes if everything passes.
 
 ## Steps
 
@@ -31,12 +31,26 @@ python -m pytest --tb=short -q
 ```
 This runs the full test suite with coverage enforcement (85% minimum, configured in pyproject.toml).
 
+### 4. Commit
+
+If all checks pass:
+
+1. Run `git status` and `git diff --stat` to see what changed.
+2. Run `git log --oneline -5` to match the repo's commit message style.
+3. Stage all relevant changes (prefer specific files over `git add -A`).
+4. Draft a concise commit message summarizing the "why" of the changes.
+5. Create the commit with the Co-Authored-By trailer:
+```
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+```
+
 ## On Failure
 
 - **Lint errors**: Auto-fix with `ruff check --fix`, then review the changes to ensure correctness.
 - **Format errors**: Auto-fix with `ruff format`, these are always safe.
 - **Test failures**: Read the failure output, diagnose, and fix the code. Re-run only the failing test to iterate quickly: `python -m pytest tests/test_file.py::TestClass::test_name -v`
+- **Do NOT commit** if any check fails. Report what failed and what was fixed, then re-run all checks.
 
 ## On Success
 
-Report a one-line summary: number of lint/format issues fixed (if any) and test count/coverage.
+Report: checks passed, test count/coverage, and the commit hash.
