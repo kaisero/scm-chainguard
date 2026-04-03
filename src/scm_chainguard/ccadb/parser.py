@@ -1,4 +1,4 @@
-"""Parse CCADB CSV data: filter Chrome-trusted certs, walk certificate tree, attach PEMs."""
+"""Parse CCADB CSV data: filter trust-store certs, walk certificate tree, attach PEMs."""
 
 from __future__ import annotations
 
@@ -7,16 +7,70 @@ import io
 import logging
 from dataclasses import replace
 
-from scm_chainguard.models import CcadbCertificate, CertType
+from scm_chainguard.models import CcadbCertificate, CertType, TrustStore
 
 logger = logging.getLogger(__name__)
+
+
+def _is_included(row: dict[str, str], trust_store: TrustStore) -> bool:
+    """Check if a row's status is 'Included' for the given store (or any store if ALL)."""
+    if trust_store == TrustStore.ALL:
+        return any(
+            row.get(s.status_column, "").strip() == "Included"
+            for s in TrustStore.individual_stores()
+        )
+    return row.get(trust_store.status_column, "").strip() == "Included"
+
+
+def _is_trusted(row: dict[str, str], trust_store: TrustStore) -> bool:
+    """Check if a row's status is 'Included' or 'Trusted' for the given store (or any store if ALL)."""
+    if trust_store == TrustStore.ALL:
+        return any(
+            row.get(s.status_column, "").strip() in ("Included", "Trusted")
+            for s in TrustStore.individual_stores()
+        )
+    return row.get(trust_store.status_column, "").strip() in ("Included", "Trusted")
+
+
+def _is_distrusted(row: dict[str, str], trust_store: TrustStore) -> bool:
+    """Check if a row's status is 'Removed' or 'Blocked' for the given store.
+
+    For TrustStore.ALL: returns True only if at least one store has Removed/Blocked
+    AND no store still has Included/Trusted status.
+    """
+    if trust_store == TrustStore.ALL:
+        statuses = [row.get(s.status_column, "").strip() for s in TrustStore.individual_stores()]
+        has_removed = any(s in ("Removed", "Blocked") for s in statuses)
+        still_trusted = any(s in ("Included", "Trusted") for s in statuses)
+        return has_removed and not still_trusted
+    return row.get(trust_store.status_column, "").strip() in ("Removed", "Blocked")
+
+
+def collect_distrusted_fingerprints(
+    csv_text: str,
+    trust_store: TrustStore = TrustStore.CHROME,
+) -> set[str]:
+    """Return SHA-256 fingerprints of root certs marked Removed/Blocked for the given store."""
+    reader = csv.DictReader(io.StringIO(csv_text))
+    fingerprints: set[str] = set()
+    for row in reader:
+        if row.get("Certificate Record Type") != "Root Certificate":
+            continue
+        if not _is_distrusted(row, trust_store):
+            continue
+        sha256 = row.get("SHA-256 Fingerprint", "").strip().upper()
+        if sha256:
+            fingerprints.add(sha256)
+    logger.info("Found %d distrusted root certificates for store '%s'.", len(fingerprints), trust_store.value)
+    return fingerprints
 
 
 def parse_metadata(
     csv_text: str,
     include_intermediates: bool = False,
+    trust_store: TrustStore = TrustStore.CHROME,
 ) -> tuple[dict[str, CcadbCertificate], dict[str, CcadbCertificate]]:
-    """Parse CCADB metadata CSV and return Chrome-trusted roots and intermediates.
+    """Parse CCADB metadata CSV and return trusted roots and intermediates for the given store.
 
     Returns (roots_by_sha256, intermediates_by_sha256).
     If include_intermediates is False, the intermediates dict is empty.
@@ -25,12 +79,12 @@ def parse_metadata(
     rows = list(reader)
     logger.info("Parsed %d total CCADB records.", len(rows))
 
-    # Pass 1: Chrome-included roots
+    # Pass 1: included roots
     roots: dict[str, CcadbCertificate] = {}
     for row in rows:
         if row.get("Certificate Record Type") != "Root Certificate":
             continue
-        if row.get("Chrome Status", "").strip() != "Included":
+        if not _is_included(row, trust_store):
             continue
         if row.get("Revocation Status", "").strip() not in ("", "Not Revoked"):
             continue
@@ -44,18 +98,17 @@ def parse_metadata(
             ca_owner=row.get("CA Owner", "").strip(),
             cert_type=CertType.ROOT,
         )
-    logger.info("Found %d Chrome-included root certificates.", len(roots))
+    logger.info("Found %d %s-included root certificates.", len(roots), trust_store.value)
 
     if not include_intermediates:
         return roots, {}
 
-    # Pass 2: Collect all valid Chrome-trusted intermediates
+    # Pass 2: Collect all valid trusted intermediates
     all_intermediates: dict[str, CcadbCertificate] = {}
     for row in rows:
         if row.get("Certificate Record Type") != "Intermediate Certificate":
             continue
-        chrome_status = row.get("Chrome Status", "").strip()
-        if chrome_status not in ("Included", "Trusted"):
+        if not _is_trusted(row, trust_store):
             continue
         if row.get("Revocation Status", "").strip() not in ("", "Not Revoked"):
             continue

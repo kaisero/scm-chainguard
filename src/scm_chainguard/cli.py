@@ -10,13 +10,14 @@ import typer
 from scm_chainguard import __version__
 from scm_chainguard.config import ConfigError, load_config
 from scm_chainguard.logging_setup import configure_logging
+from scm_chainguard.models import TrustStore
 
 if TYPE_CHECKING:
     from scm_chainguard.config import ScmConfig
 
 app = typer.Typer(
     name="scm-chainguard",
-    help="Manage Chrome-trusted CA certificates in Palo Alto Strata Cloud Manager.",
+    help="Manage trusted CA certificates in Palo Alto Strata Cloud Manager.",
     no_args_is_help=True,
 )
 
@@ -50,7 +51,7 @@ def main(
         help="Show version and exit.",
     ),
 ) -> None:
-    """scm-chainguard: Chrome-trusted CA certificate management for SCM."""
+    """scm-chainguard: Trusted CA certificate management for SCM."""
     configure_logging(debug=debug, log_file=log_file)
     ctx.ensure_object(dict)
     ctx.obj["config_path"] = config
@@ -80,8 +81,15 @@ def fetch(
         "-o",
         help="Override output directory.",
     ),
+    store: TrustStore = typer.Option(
+        TrustStore.CHROME,
+        "--store",
+        "-s",
+        help="Trust store to filter by: chrome, mozilla, microsoft, apple, all.",
+        case_sensitive=False,
+    ),
 ) -> None:
-    """Download Chrome-trusted CA certificates from CCADB."""
+    """Download trusted CA certificates from CCADB."""
     from scm_chainguard.pipeline import run_fetch
     from dataclasses import replace
 
@@ -89,7 +97,7 @@ def fetch(
     if output_dir:
         config = replace(config, output_dir=str(output_dir))
 
-    result = run_fetch(config, include_intermediates)
+    result = run_fetch(config, include_intermediates, trust_store=store)
     typer.echo(f"Root certificates saved to: {result['roots']}")
     if "intermediates" in result:
         typer.echo(f"Intermediate certificates saved to: {result['intermediates']}")
@@ -104,12 +112,29 @@ def compare(
         "-i",
         help="Also compare intermediate certificates.",
     ),
+    output_dir: Path | None = typer.Option(
+        None,
+        "--output-dir",
+        "-o",
+        help="Override output directory (must match the directory used for fetch).",
+    ),
+    store: TrustStore = typer.Option(
+        TrustStore.CHROME,
+        "--store",
+        "-s",
+        help="Trust store to filter by: chrome, mozilla, microsoft, apple, all.",
+        case_sensitive=False,
+    ),
 ) -> None:
     """Compare local certificates against SCM certificate stores."""
+    from dataclasses import replace
+
     from scm_chainguard.pipeline import run_compare
 
     config = _get_config(ctx)
-    results = run_compare(config, include_intermediates)
+    if output_dir:
+        config = replace(config, output_dir=str(output_dir))
+    results = run_compare(config, include_intermediates, trust_store=store)
 
     for label, comp in results.items():
         typer.echo(f"\n{'=' * 60}")
@@ -140,12 +165,29 @@ def sync(
         "-n",
         help="Show what would be done without making changes.",
     ),
+    output_dir: Path | None = typer.Option(
+        None,
+        "--output-dir",
+        "-o",
+        help="Override output directory (must match the directory used for fetch).",
+    ),
+    store: TrustStore = typer.Option(
+        TrustStore.CHROME,
+        "--store",
+        "-s",
+        help="Trust store to filter by: chrome, mozilla, microsoft, apple, all.",
+        case_sensitive=False,
+    ),
 ) -> None:
     """Import missing certificates into SCM and add as trusted roots."""
+    from dataclasses import replace
+
     from scm_chainguard.pipeline import run_sync
 
     config = _get_config(ctx)
-    results = run_sync(config, include_intermediates, dry_run)
+    if output_dir:
+        config = replace(config, output_dir=str(output_dir))
+    results = run_sync(config, include_intermediates, dry_run, trust_store=store)
 
     for label, sr in results.items():
         prefix = "[DRY-RUN] " if sr.dry_run else ""
@@ -192,6 +234,48 @@ def cleanup(
 
 
 @app.command()
+def revoke(
+    ctx: typer.Context,
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        "-n",
+        help="Show what would be removed without making changes.",
+    ),
+    store: TrustStore = typer.Option(
+        TrustStore.CHROME,
+        "--store",
+        "-s",
+        help="Trust store to check: chrome, mozilla, microsoft, apple, all.",
+        case_sensitive=False,
+    ),
+) -> None:
+    """Remove CG_-managed certificates that are distrusted (Removed/Blocked) in CCADB."""
+    from scm_chainguard.pipeline import run_revoke
+
+    config = _get_config(ctx)
+    result = run_revoke(config, dry_run, trust_store=store)
+
+    prefix = "[DRY-RUN] " if result.dry_run else ""
+    if not result.deleted and not result.failed:
+        typer.echo("No distrusted CG_-managed certificates found.")
+        return
+
+    typer.echo(
+        f"\n{prefix}Revoke: {len(result.deleted)} deleted, "
+        f"{len(result.removed_from_trusted)} removed from trusted root CA list, "
+        f"{len(result.failed)} failed"
+    )
+    for name in result.deleted:
+        typer.echo(f"  {prefix}REVOKED: {name}")
+    for name, error in result.failed:
+        typer.echo(f"  FAILED: {name} — {error}", err=True)
+
+    if result.failed:
+        raise typer.Exit(1)
+
+
+@app.command()
 def run(
     ctx: typer.Context,
     include_intermediates: bool = typer.Option(
@@ -206,12 +290,19 @@ def run(
         "-n",
         help="Dry-run the sync stage.",
     ),
+    store: TrustStore = typer.Option(
+        TrustStore.CHROME,
+        "--store",
+        "-s",
+        help="Trust store to filter by: chrome, mozilla, microsoft, apple, all.",
+        case_sensitive=False,
+    ),
 ) -> None:
     """Full pipeline: fetch -> compare -> sync."""
     from scm_chainguard.pipeline import run_full_pipeline
 
     config = _get_config(ctx)
-    result = run_full_pipeline(config, include_intermediates, dry_run)
+    result = run_full_pipeline(config, include_intermediates, dry_run, trust_store=store)
 
     sync_results = result.get("sync", {})
     for label, sr in sync_results.items():

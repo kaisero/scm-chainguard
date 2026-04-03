@@ -1,6 +1,19 @@
 """Shared test fixtures."""
 
+from __future__ import annotations
+
+from pathlib import Path
+
 import pytest
+
+from scm_chainguard.models import (
+    CcadbCertificate,
+    CertType,
+    CleanupResult,
+    ComparisonResult,
+    LocalCertificate,
+    SyncResult,
+)
 
 SAMPLE_PEM = (
     "-----BEGIN CERTIFICATE-----\n"
@@ -51,6 +64,9 @@ def mock_auth(sample_config):
     return auth
 
 
+SAMPLE_PEM_NO_NEWLINE = SAMPLE_PEM.rstrip("\n")
+
+
 def mock_auth_response():
     """Add a mock auth token response to the responses library."""
     import responses
@@ -60,4 +76,89 @@ def mock_auth_response():
         AUTH_URL,
         json={"access_token": "test-token", "expires_in": 900},
         status=200,
+    )
+
+
+@pytest.fixture
+def make_ccadb_cert():
+    """Factory fixture for CcadbCertificate with sensible defaults."""
+
+    def _make(
+        sha256: str = "AAAA0001",
+        common_name: str = "Test Root CA",
+        ca_owner: str = "Test Org",
+        cert_type: CertType = CertType.ROOT,
+        parent_sha256: str | None = None,
+        pem: str | None = None,
+    ) -> CcadbCertificate:
+        return CcadbCertificate(
+            sha256_fingerprint=sha256,
+            common_name=common_name,
+            ca_owner=ca_owner,
+            cert_type=cert_type,
+            parent_sha256=parent_sha256,
+            pem=pem,
+        )
+
+    return _make
+
+
+@pytest.fixture
+def make_local_cert():
+    """Factory fixture for LocalCertificate with sensible defaults."""
+
+    def _make(
+        common_name: str = "Test CA",
+        sha256: str = "AABB1122",
+        cert_type: CertType = CertType.ROOT,
+        pem: str = SAMPLE_PEM,
+        filename: str | None = None,
+    ) -> LocalCertificate:
+        fname = filename or f"{common_name.replace(' ', '_')}_{sha256[:8]}.pem"
+        return LocalCertificate(
+            filepath=f"/tmp/{fname}",
+            filename=fname,
+            common_name=common_name,
+            sha256_fingerprint=sha256,
+            pem=pem,
+            cert_type=cert_type,
+        )
+
+    return _make
+
+
+@pytest.fixture
+def sample_comparison_result(make_local_cert):
+    """Pre-built ComparisonResult with present and missing certs."""
+    present_cert = make_local_cert(common_name="Present CA", sha256="1111AAAA")
+    missing_cert = make_local_cert(common_name="Missing CA", sha256="2222BBBB")
+    return ComparisonResult(
+        cert_type=CertType.ROOT,
+        present=[(present_cert, "CG_Present_CA_1111AAAA")],
+        missing=[missing_cert],
+        total_local=2,
+        total_scm=10,
+    )
+
+
+@pytest.fixture
+def sample_sync_result():
+    """Pre-built SyncResult for CLI tests."""
+    return SyncResult(
+        imported=["CG_NewCert_AABB1122"],
+        skipped=["CG_OldCert_CCDD3344"],
+        failed=[],
+        trusted_roots_added=["CG_NewCert_AABB1122"],
+        dry_run=False,
+    )
+
+
+@pytest.fixture
+def sample_cleanup_result():
+    """Pre-built CleanupResult for CLI tests."""
+    return CleanupResult(
+        removed_from_trusted=["CG_Expired_AABB1122"],
+        deleted=["CG_Expired_AABB1122"],
+        failed=[],
+        dry_run=False,
     )

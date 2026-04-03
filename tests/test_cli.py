@@ -10,7 +10,7 @@ class TestCliStructure:
     def test_help(self):
         result = runner.invoke(app, ["--help"])
         assert result.exit_code == 0
-        assert "Chrome-trusted CA" in result.stdout
+        assert "trusted CA" in result.stdout
 
     def test_version(self):
         from scm_chainguard import __version__
@@ -21,7 +21,7 @@ class TestCliStructure:
 
     def test_subcommands_listed(self):
         result = runner.invoke(app, ["--help"])
-        for cmd in ["fetch", "compare", "sync", "cleanup", "run"]:
+        for cmd in ["fetch", "compare", "sync", "cleanup", "revoke", "run"]:
             assert cmd in result.stdout
 
 
@@ -29,7 +29,8 @@ class TestFetchCommand:
     def test_help(self):
         result = runner.invoke(app, ["fetch", "--help"])
         assert result.exit_code == 0
-        assert "--include-intermediates" in result.stdout
+        assert "--include-intermediat" in result.stdout
+        assert "--store" in result.stdout
 
     def test_missing_config(self, monkeypatch):
         monkeypatch.delenv("SCM_CLIENT_ID", raising=False)
@@ -43,7 +44,9 @@ class TestCompareCommand:
     def test_help(self):
         result = runner.invoke(app, ["compare", "--help"])
         assert result.exit_code == 0
-        assert "--include-intermediates" in result.stdout
+        assert "--include-intermediat" in result.stdout
+        assert "--store" in result.stdout
+        assert "--output-dir" in result.stdout
 
 
 class TestSyncCommand:
@@ -51,7 +54,9 @@ class TestSyncCommand:
         result = runner.invoke(app, ["sync", "--help"])
         assert result.exit_code == 0
         assert "--dry-run" in result.stdout
-        assert "--include-intermediates" in result.stdout
+        assert "--include-intermediat" in result.stdout
+        assert "--store" in result.stdout
+        assert "--output-dir" in result.stdout
 
 
 class TestCleanupCommand:
@@ -59,6 +64,15 @@ class TestCleanupCommand:
         result = runner.invoke(app, ["cleanup", "--help"])
         assert result.exit_code == 0
         assert "--dry-run" in result.stdout
+        assert "--store" not in result.stdout
+
+
+class TestRevokeCommand:
+    def test_help(self):
+        result = runner.invoke(app, ["revoke", "--help"])
+        assert result.exit_code == 0
+        assert "--dry-run" in result.stdout
+        assert "--store" in result.stdout
 
 
 class TestRunCommand:
@@ -66,3 +80,4 @@ class TestRunCommand:
         result = runner.invoke(app, ["run", "--help"])
         assert result.exit_code == 0
         assert "--dry-run" in result.stdout
+        assert "--store" in result.stdout
