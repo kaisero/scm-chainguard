@@ -188,9 +188,17 @@ def run_full_pipeline(
     return {"fetch": fetch_result, "sync": sync_results}
 
 
-def run_cleanup(config: ScmConfig, dry_run: bool = False) -> CleanupResult:
-    """Remove expired CG_-managed certificates from SCM."""
-    from scm_chainguard.cert_utils import is_cert_expired
+def run_cleanup(
+    config: ScmConfig,
+    dry_run: bool = False,
+    *,
+    ignore_expiry_date: bool = False,
+) -> CleanupResult:
+    """Remove expired CG_-managed certificates from SCM.
+
+    If *ignore_expiry_date* is True, **all** CG_-managed certificates are
+    removed regardless of whether they have expired.
+    """
     from scm_chainguard.logging_setup import get_audit_logger
 
     audit = get_audit_logger()
@@ -204,32 +212,42 @@ def run_cleanup(config: ScmConfig, dry_run: bool = False) -> CleanupResult:
     managed = [c for c in all_certs if c.name.startswith(CERT_PREFIX)]
     logger.info("Found %d CG_-managed certificates (of %d total).", len(managed), len(all_certs))
 
-    expired = []
-    for cert in managed:
-        if not cert.pem:
+    if ignore_expiry_date:
+        targets = [c for c in managed if c.pem]
+        skipped = [c for c in managed if not c.pem]
+        for cert in skipped:
             logger.warning("No PEM data for cert %r (id=%s), skipping.", cert.name, cert.id)
-            continue
-        try:
-            if is_cert_expired(cert.pem):
-                expired.append(cert)
-        except Exception as e:
-            logger.warning("Could not parse cert %r: %s", cert.name, e, exc_info=True)
+    else:
+        from scm_chainguard.cert_utils import is_cert_expired
 
-    if not expired:
-        logger.info("No expired CG_-managed certificates found.")
+        targets = []
+        for cert in managed:
+            if not cert.pem:
+                logger.warning("No PEM data for cert %r (id=%s), skipping.", cert.name, cert.id)
+                continue
+            try:
+                if is_cert_expired(cert.pem):
+                    targets.append(cert)
+            except Exception as e:
+                logger.warning("Could not parse cert %r: %s", cert.name, e, exc_info=True)
+
+    if not targets:
+        logger.info("No %sCG_-managed certificates found.", "" if ignore_expiry_date else "expired ")
         return result
 
+    label = "all" if ignore_expiry_date else "expired"
     logger.info(
-        "%s %d expired certificates...",
+        "%s %d %s certificates...",
         "[DRY-RUN] Would remove" if dry_run else "Removing",
-        len(expired),
+        len(targets),
+        label,
     )
 
-    expired_names = [c.name for c in expired]
-    removed = security.remove_trusted_root_cas(expired_names, dry_run=dry_run)
+    target_names = [c.name for c in targets]
+    removed = security.remove_trusted_root_cas(target_names, dry_run=dry_run)
     result.removed_from_trusted = removed
 
-    for cert in expired:
+    for cert in targets:
         if dry_run:
             audit.info("AUDIT: DRY_RUN would_delete cert=%r id=%s", cert.name, cert.id)
             result.deleted.append(cert.name)
