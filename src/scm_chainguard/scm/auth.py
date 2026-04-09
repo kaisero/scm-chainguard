@@ -45,17 +45,19 @@ class ScmAuthenticator:
 
     def _refresh(self) -> None:
         url = f"{self._config.auth_url}/oauth2/access_token"
-        logger.debug("Requesting OAuth2 token from %s", url)
-        resp = self._session.post(
+        payload = {
+            "grant_type": "client_credentials",
+            "client_id": self._config.client_id,
+            "client_secret": self._config.client_secret,
+            "scope": f"tsg_id:{self._config.tsg_id}",
+        }
+        logger.debug(
+            "POST %s payload=%s",
             url,
-            data={
-                "grant_type": "client_credentials",
-                "client_id": self._config.client_id,
-                "client_secret": self._config.client_secret,
-                "scope": f"tsg_id:{self._config.tsg_id}",
-            },
-            timeout=30,
+            {k: ("***" if k == "client_secret" else v) for k, v in payload.items()},
         )
+        resp = self._session.post(url, data=payload, timeout=30)
+        logger.debug("Response %d: %s", resp.status_code, resp.text)
         if not resp.ok:
             raise AuthError(f"Authentication failed: {resp.status_code} {resp.text}")
         data = resp.json()
