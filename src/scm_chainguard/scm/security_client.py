@@ -41,12 +41,15 @@ class SecurityClient:
     def get_ssl_decryption_settings(self) -> dict | None:
         """Get the SSL decryption settings singleton."""
         url = f"{self._config.security_url}/ssl-decryption-settings"
+        params = {"folder": self._config.ssl_settings_folder}
+        logger.debug("GET %s params=%s", url, params)
         resp = self._session.get(
             url,
             headers=self._auth.bearer_headers(),
-            params={"folder": self._config.ssl_settings_folder},
+            params=params,
             timeout=self._config.request_timeout,
         )
+        logger.debug("Response %d: %s", resp.status_code, resp.text)
         resp.raise_for_status()
         entries = resp.json().get("data", [])
         if not entries:
@@ -64,12 +67,14 @@ class SecurityClient:
     def _put_settings(self, settings: dict) -> None:
         """PUT updated settings, raising SecurityError with full detail on failure."""
         url = f"{self._config.security_url}/ssl-decryption-settings"
+        logger.debug("PUT %s payload=%s", url, settings)
         resp = self._session.put(
             url,
             json=settings,
             headers=self._auth.bearer_headers(),
             timeout=self._config.request_timeout,
         )
+        logger.debug("Response %d: %s", resp.status_code, resp.text)
         if not resp.ok:
             raise SecurityError(
                 f"HTTP {resp.status_code}: {extract_error_message(resp)}",

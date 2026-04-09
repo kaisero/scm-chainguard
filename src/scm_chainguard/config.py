@@ -24,7 +24,7 @@ class ScmConfig:
     auth_url: str = "https://auth.apps.paloaltonetworks.com"
     scm_host: str = "api.strata.paloaltonetworks.com"
     cert_folder: str = "All"
-    ssl_settings_folder: str = "Prisma Access"
+    ssl_settings_folder: str = "All"
     output_dir: str = "./output"
     request_timeout: int = 120
 

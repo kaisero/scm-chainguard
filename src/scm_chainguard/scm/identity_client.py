@@ -61,12 +61,15 @@ class IdentityClient:
         limit = DEFAULT_PAGE_SIZE
 
         while True:
+            params = {"folder": folder, "limit": limit, "offset": offset}
+            logger.debug("GET %s params=%s", url, params)
             resp = self._session.get(
                 url,
                 headers=self._auth.bearer_headers(),
-                params={"folder": folder, "limit": limit, "offset": offset},
+                params=params,
                 timeout=self._config.request_timeout,
             )
+            logger.debug("Response %d: %s", resp.status_code, resp.text)
             resp.raise_for_status()
             data = resp.json()
 
@@ -88,7 +91,7 @@ class IdentityClient:
 
     def list_trusted_certificate_authorities(
         self,
-        folder: str = "Prisma Access",
+        folder: str = "All",
     ) -> list[ScmPredefinedRoot]:
         """List all predefined trusted root CAs (paginated)."""
         url = f"{self._config.identity_url}/trusted-certificate-authorities"
@@ -108,7 +111,7 @@ class IdentityClient:
         logger.info("Found %d predefined trusted root CAs.", len(result))
         return result
 
-    def list_certificates(self, folder: str = "Prisma Access") -> list[ScmImportedCert]:
+    def list_certificates(self, folder: str = "All") -> list[ScmImportedCert]:
         """List all imported certificates (paginated)."""
         url = f"{self._config.identity_url}/certificates"
         logger.debug("Listing certificates from %s (folder=%s)", url, folder)
@@ -183,6 +186,7 @@ class IdentityClient:
             headers=self._auth.bearer_headers(),
             timeout=self._config.request_timeout,
         )
+        logger.debug("Response %d: %s", resp.status_code, resp.text)
         if not resp.ok:
             raise CertificateImportError(
                 f"HTTP {resp.status_code}: {extract_error_message(resp)}",
