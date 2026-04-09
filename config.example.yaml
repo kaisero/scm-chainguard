@@ -6,5 +6,5 @@ scm:
   # auth_url: "https://auth.apps.paloaltonetworks.com"
   # scm_host: "api.strata.paloaltonetworks.com"
   # cert_folder: "All"
-  # ssl_settings_folder: "Prisma Access"
+  # ssl_settings_folder: "All"
   # output_dir: "./output"

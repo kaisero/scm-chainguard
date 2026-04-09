@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-04-09
+
+### Added
+
+- **Debug logging for SCM API requests**: All HTTP requests to SCM (Identity, Security, and Auth APIs) now log the method, URL, parameters/payload, and response status/body at DEBUG level (`--debug`). The `client_secret` is masked in auth request logs.
+- **`cleanup --ignore-expiry-date` flag**: New option to delete all CG_-managed certificates regardless of expiry status.
+
+### Changed
+
+- **Default `ssl_settings_folder` changed from "Prisma Access" to "All"**: SSL decryption settings now default to the Global folder, consistent with `cert_folder`. Override via `SCM_SSL_SETTINGS_FOLDER` env var or YAML config if needed.
+
 ## [0.1.0] - 2026-04-03
 
 ### Added

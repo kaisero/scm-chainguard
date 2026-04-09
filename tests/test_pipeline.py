@@ -650,6 +650,55 @@ class TestRunCleanup:
         result = run_cleanup(sample_config)
         assert isinstance(result, CleanupResult)
 
+    @patch("scm_chainguard.pipeline.SecurityClient")
+    @patch("scm_chainguard.pipeline.IdentityClient")
+    @patch("scm_chainguard.pipeline.ScmAuthenticator")
+    def test_ignore_expiry_deletes_non_expired(self, MockAuth, MockIdentity, MockSecurity, sample_config):
+        cert = self._scm_cert("CG_Valid", cert_id="v1")
+        MockIdentity.return_value.list_certificates.return_value = [cert]
+        MockSecurity.return_value.remove_trusted_root_cas.return_value = ["CG_Valid"]
+
+        result = run_cleanup(sample_config, ignore_expiry_date=True)
+        assert "CG_Valid" in result.deleted
+        MockIdentity.return_value.delete_certificate.assert_called_once_with("v1")
+
+    @patch("scm_chainguard.pipeline.SecurityClient")
+    @patch("scm_chainguard.pipeline.IdentityClient")
+    @patch("scm_chainguard.pipeline.ScmAuthenticator")
+    def test_ignore_expiry_skips_no_pem(self, MockAuth, MockIdentity, MockSecurity, sample_config):
+        cert = self._scm_cert("CG_NoPem", pem=None)
+        MockIdentity.return_value.list_certificates.return_value = [cert]
+
+        result = run_cleanup(sample_config, ignore_expiry_date=True)
+        assert result.deleted == []
+
+    @patch("scm_chainguard.pipeline.SecurityClient")
+    @patch("scm_chainguard.pipeline.IdentityClient")
+    @patch("scm_chainguard.pipeline.ScmAuthenticator")
+    def test_ignore_expiry_dry_run(self, MockAuth, MockIdentity, MockSecurity, sample_config):
+        cert = self._scm_cert("CG_Valid")
+        MockIdentity.return_value.list_certificates.return_value = [cert]
+        MockSecurity.return_value.remove_trusted_root_cas.return_value = ["CG_Valid"]
+
+        result = run_cleanup(sample_config, dry_run=True, ignore_expiry_date=True)
+        assert result.dry_run is True
+        assert "CG_Valid" in result.deleted
+        MockIdentity.return_value.delete_certificate.assert_not_called()
+
+    @patch("scm_chainguard.pipeline.SecurityClient")
+    @patch("scm_chainguard.pipeline.IdentityClient")
+    @patch("scm_chainguard.pipeline.ScmAuthenticator")
+    def test_ignore_expiry_filters_only_cg_prefix(self, MockAuth, MockIdentity, MockSecurity, sample_config):
+        MockIdentity.return_value.list_certificates.return_value = [
+            self._scm_cert("CG_Managed", cert_id="m1"),
+            self._scm_cert("Other_Cert", cert_id="o1"),
+        ]
+        MockSecurity.return_value.remove_trusted_root_cas.return_value = ["CG_Managed"]
+
+        result = run_cleanup(sample_config, ignore_expiry_date=True)
+        assert "CG_Managed" in result.deleted
+        assert "Other_Cert" not in result.deleted
+
 
 # ---------------------------------------------------------------------------
 # TestRunRevoke

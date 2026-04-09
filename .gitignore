@@ -8,3 +8,5 @@ build/
 .coverage
 output/
 .idea/
+.devcontainer/
+uv.lock
