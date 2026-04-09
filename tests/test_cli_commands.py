@@ -195,7 +195,7 @@ class TestCleanupExecution:
         mock_cleanup.return_value = CleanupResult()
 
         result = runner.invoke(app, ["cleanup"])
-        assert "No expired" in result.stdout
+        assert "No CG_-managed certificates found to remove." in result.stdout
 
     @patch("scm_chainguard.pipeline.run_cleanup")
     def test_failures_exit_1(self, mock_cleanup, monkeypatch):
@@ -207,6 +207,18 @@ class TestCleanupExecution:
 
         result = runner.invoke(app, ["cleanup"])
         assert result.exit_code == 1
+
+    @patch("scm_chainguard.pipeline.run_cleanup")
+    def test_ignore_expiry_date_flag(self, mock_cleanup, monkeypatch):
+        for k, v in _env_vars().items():
+            monkeypatch.setenv(k, v)
+        mock_cleanup.return_value = CleanupResult(deleted=["CG_Valid"])
+
+        result = runner.invoke(app, ["cleanup", "--ignore-expiry-date"])
+        assert result.exit_code == 0
+        mock_cleanup.assert_called_once()
+        _, kwargs = mock_cleanup.call_args
+        assert kwargs["ignore_expiry_date"] is True
 
 
 class TestRevokeExecution:

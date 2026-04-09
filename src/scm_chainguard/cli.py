@@ -211,16 +211,21 @@ def cleanup(
         "-n",
         help="Show what would be removed without making changes.",
     ),
+    ignore_expiry_date: bool = typer.Option(
+        False,
+        "--ignore-expiry-date",
+        help="Delete all CG_-managed certificates regardless of expiry status.",
+    ),
 ) -> None:
     """Remove expired CG_-managed certificates from SCM trusted roots and delete them."""
     from scm_chainguard.pipeline import run_cleanup
 
     config = _get_config(ctx)
-    result = run_cleanup(config, dry_run)
+    result = run_cleanup(config, dry_run, ignore_expiry_date=ignore_expiry_date)
 
     prefix = "[DRY-RUN] " if result.dry_run else ""
     if not result.deleted and not result.failed:
-        typer.echo("No expired CG_-managed certificates found.")
+        typer.echo("No CG_-managed certificates found to remove.")
         return
 
     typer.echo(f"\n{prefix}Cleanup: {len(result.deleted)} deleted, {len(result.removed_from_trusted)} removed from trusted root CA list, {len(result.failed)} failed")
