@@ -400,7 +400,7 @@ class TestRunSync:
     @patch("scm_chainguard.pipeline.SecurityClient")
     @patch("scm_chainguard.pipeline.IdentityClient")
     @patch("scm_chainguard.pipeline.ScmAuthenticator")
-    def test_intermediates_not_trusted_root(self, MockAuth, MockIdentity, MockSecurity, mock_compare, mock_sync, sample_config):
+    def test_intermediates_added_to_trusted_root(self, MockAuth, MockIdentity, MockSecurity, mock_compare, mock_sync, sample_config):
         mock_compare.return_value = {
             "roots": ComparisonResult(cert_type=CertType.ROOT, missing=[]),
             "intermediates": ComparisonResult(cert_type=CertType.INTERMEDIATE, missing=[MagicMock()]),
@@ -408,8 +408,8 @@ class TestRunSync:
         mock_sync.return_value = SyncResult()
 
         run_sync(sample_config, include_intermediates=True)
-        # The intermediates sync call should have add_as_trusted_root=False
-        int_call = [c for c in mock_sync.call_args_list if c.kwargs.get("add_as_trusted_root") is False]
+        # The intermediates sync call should have add_as_trusted_root=True
+        int_call = [c for c in mock_sync.call_args_list if c.kwargs.get("add_as_trusted_root") is True]
         assert len(int_call) == 1
 
     @patch("scm_chainguard.pipeline.sync_certificates")

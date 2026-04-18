@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-04-18
+
+### Fixed
+
+- **Unicode certificate name handling**: Certificates with non-ASCII characters in their Common Name (e.g., accented Latin `í`, `ó`, or Japanese kanji) are now transliterated to ASCII before import using NFKD normalization. Names that are entirely non-ASCII fall back to a `cert` prefix. This prevents import failures caused by the SCM API rejecting unsupported encoded characters.
+- **Intermediate certificates added to Trusted CA List**: Intermediate certificates are now added to the `trusted_root_CA` list after import, matching the existing behavior for root certificates. Previously they were imported but never added to the trusted list. Already-imported intermediates missing from the trusted list are also detected and added during sync.
+- **Improved error logging for certificate import**: The SCM API error message (`details.message`) is now extracted and logged at ERROR level for failed imports and WARNING level for skipped certificates, making failures visible without `--debug`.
+- **Skip expired certificates before import**: Certificates are now checked for expiry client-side before attempting the API call, avoiding unnecessary network round-trips and providing a clear warning log.
+
+### Changed
+
+- **CCADB data source upgraded from AllCertificateRecordsCSVFormatV3 to AllCertificateRecordsCSVFormatV4**.
+
 ## [0.1.1] - 2026-04-09
 
 ### Added
