@@ -144,15 +144,24 @@ def run_sync(
 
     if include_intermediates and "intermediates" in comparisons:
         int_comp = comparisons["intermediates"]
-        if int_comp.missing:
-            logger.info("Syncing %d missing intermediate certificates...", len(int_comp.missing))
+        ensure_trusted_int = [scm_name for _, scm_name in int_comp.present if scm_name.startswith(CERT_PREFIX)]
+        if ensure_trusted_int:
+            logger.info(
+                "Found %d already-imported CG_ intermediate certificates to ensure in trusted root CA list.",
+                len(ensure_trusted_int),
+            )
+
+        if int_comp.missing or ensure_trusted_int:
+            if int_comp.missing:
+                logger.info("Syncing %d missing intermediate certificates...", len(int_comp.missing))
             results["intermediates"] = sync_certificates(
                 int_comp.missing,
                 identity,
                 security,
                 config,
                 dry_run=dry_run,
-                add_as_trusted_root=False,
+                add_as_trusted_root=True,
+                ensure_trusted=ensure_trusted_int,
             )
         else:
             logger.info("All intermediate certificates are already present in SCM.")

@@ -6,6 +6,7 @@ import base64
 import hashlib
 import logging
 import re
+import unicodedata
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -39,8 +40,24 @@ def extract_common_name(pem_text: str) -> str | None:
     return cns[0].value if cns else None
 
 
+def _ascii_transliterate(name: str) -> str:
+    """Transliterate a Unicode string to ASCII.
+
+    Uses NFKD normalization to decompose accented characters (e.g. ``í`` → ``i``,
+    ``ó`` → ``o``), then strips any remaining non-ASCII characters.  If the
+    result is empty (e.g. an all-kanji name), returns ``"cert"`` as a fallback.
+    """
+    decomposed = unicodedata.normalize("NFKD", name)
+    ascii_str = decomposed.encode("ascii", "ignore").decode("ascii")
+    if not ascii_str.strip():
+        return "cert"
+    return ascii_str
+
+
 def sanitize_filename(name: str, sha256: str) -> str:
     """Build a filesystem-safe filename: {sanitized_name}_{SHA256[:8]}.pem"""
+    if name:
+        name = _ascii_transliterate(name)
     clean = re.sub(r"[^\w\s\-.]", "", name)
     clean = re.sub(r"\s+", "_", clean.strip())
     clean = re.sub(r"_+", "_", clean).strip("_")
@@ -83,11 +100,12 @@ def cert_import_name(filename: str) -> str:
 
     Strategy:
     1. Start with filename stem (without .pem)
-    2. Reserve space for CG_ prefix
-    3. Apply abbreviation rules iteratively until it fits
-    4. If still too long, truncate the name part but keep the _SHA8 suffix
+    2. Transliterate non-ASCII characters to ASCII
+    3. Reserve space for CG_ prefix
+    4. Apply abbreviation rules iteratively until it fits
+    5. If still too long, truncate the name part but keep the _SHA8 suffix
     """
-    stem = filename.removesuffix(".pem")
+    stem = _ascii_transliterate(filename.removesuffix(".pem"))
     max_len = SCM_NAME_MAX - len(CERT_PREFIX)
 
     if len(stem) <= max_len:

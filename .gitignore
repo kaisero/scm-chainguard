@@ -10,3 +10,4 @@ output/
 .idea/
 .devcontainer/
 uv.lock
+*.log

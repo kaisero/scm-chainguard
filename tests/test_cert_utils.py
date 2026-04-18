@@ -3,6 +3,7 @@
 import pytest
 from scm_chainguard.cert_utils import (
     CERT_PREFIX,
+    _ascii_transliterate,
     cert_import_name,
     extract_common_name,
     is_cert_expired,
@@ -50,12 +51,43 @@ class TestSanitizeFilename:
 
     def test_unicode(self):
         result = sanitize_filename("Főtanúsítvány", "6C61DAC3")
-        assert result.endswith("_6C61DAC3.pem")
-        assert "/" not in result
+        assert result == "Fotanusitvany_6C61DAC3.pem"
+
+    def test_unicode_kanji(self):
+        result = sanitize_filename("日本認証局", "AABB1122")
+        assert result == "cert_AABB1122.pem"
+
+    def test_unicode_mixed(self):
+        result = sanitize_filename("Root_Café_日本", "AABB1122")
+        assert result == "Root_Cafe_AABB1122.pem"
 
     def test_sha_uppercased(self):
         result = sanitize_filename("Test", "abcdef12")
         assert "ABCDEF12" in result
+
+
+class TestAsciiTransliterate:
+    def test_plain_ascii(self):
+        assert _ascii_transliterate("Hello World") == "Hello World"
+
+    def test_accented_latin(self):
+        assert _ascii_transliterate("Főtanúsítvány") == "Fotanusitvany"
+
+    def test_mixed_accents(self):
+        assert _ascii_transliterate("café résumé") == "cafe resume"
+
+    def test_kanji_only(self):
+        assert _ascii_transliterate("日本認証局") == "cert"
+
+    def test_mixed_kanji_and_latin(self):
+        result = _ascii_transliterate("Root_日本_CA")
+        assert result == "Root__CA"
+
+    def test_empty_string(self):
+        assert _ascii_transliterate("") == "cert"
+
+    def test_whitespace_only(self):
+        assert _ascii_transliterate("   ") == "cert"
 
 
 class TestCertImportName:
@@ -84,6 +116,18 @@ class TestCertImportName:
         result = cert_import_name("A" * 40 + "_AABB1122.pem")
         assert len(result) <= 31
         assert result.startswith(CERT_PREFIX)
+        assert result.endswith("_AABB1122")
+
+    def test_unicode_accented(self):
+        result = cert_import_name("Főtanúsítvány_6C61DAC3.pem")
+        assert result.startswith(CERT_PREFIX)
+        assert len(result) <= 31
+        assert result == "CG_Fotanusitvany_6C61DAC3"
+
+    def test_unicode_kanji(self):
+        result = cert_import_name("日本認証局_AABB1122.pem")
+        assert result.startswith(CERT_PREFIX)
+        assert len(result) <= 31
         assert result.endswith("_AABB1122")
 
 

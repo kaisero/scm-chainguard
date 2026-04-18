@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from scm_chainguard.cert_utils import cert_import_name
+from scm_chainguard.cert_utils import cert_import_name, is_cert_expired
 from scm_chainguard.config import ScmConfig
 from scm_chainguard.logging_setup import get_audit_logger
 from scm_chainguard.models import LocalCertificate, SyncResult
@@ -58,6 +58,16 @@ def sync_certificates(
     for i, cert in enumerate(missing, 1):
         name = cert_import_name(cert.filename)
 
+        # Pre-check: skip expired certificates before making an API call
+        try:
+            if is_cert_expired(cert.pem):
+                logger.warning("Skipping expired certificate %r", name)
+                audit.info("AUDIT: IMPORT cert=%r status=skipped reason=expired", name)
+                result.skipped.append(name)
+                continue
+        except Exception:
+            logger.debug("Could not check expiry for %r, proceeding with import", name)
+
         if dry_run:
             audit.info(
                 "AUDIT: DRY_RUN would_import cert=%r folder=%r",
@@ -80,9 +90,11 @@ def sync_certificates(
             result.skipped.append(name)
         except CertificateImportError as e:
             if any(skip in str(e) for skip in SKIP_ERRORS):
+                logger.warning("Skipping certificate %r: %s", name, e)
                 audit.info("AUDIT: IMPORT cert=%r status=skipped reason=%r", name, str(e))
                 result.skipped.append(name)
             else:
+                logger.error("Failed to import certificate %r: %s", name, e)
                 audit.warning("AUDIT: IMPORT cert=%r status=failed error=%r", name, str(e))
                 result.failed.append((name, str(e)))
 
