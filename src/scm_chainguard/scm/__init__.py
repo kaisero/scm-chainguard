@@ -6,7 +6,14 @@ import requests
 
 
 def extract_error_message(resp: requests.Response) -> str:
-    """Extract the most detailed error message from an SCM API error response."""
+    """Extract the most detailed error message from an SCM API error response.
+
+    Extraction priority:
+    1. ``details.errors[]`` array entries (joined with ``; ``)
+    2. ``details.message`` scalar
+    3. Top-level ``error.message``
+    4. Raw ``resp.text``
+    """
     msg = resp.text
     try:
         body = resp.json()
@@ -18,10 +25,10 @@ def extract_error_message(resp: requests.Response) -> str:
             if detail_errors:
                 msgs = [d.get("msg", "") or d.get("message", "") for d in detail_errors]
                 msg = "; ".join(m for m in msgs if m) or error.get("message", msg)
+            elif isinstance(details, dict) and details.get("message"):
+                msg = details["message"]
             else:
                 msg = error.get("message", msg)
-            if isinstance(details, dict) and details:
-                msg = f"{msg} (details: {details})"
     except Exception:
         pass
     return msg
