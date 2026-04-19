@@ -315,6 +315,54 @@ class TestSyncCertificates:
         assert "Skipping certificate" in caplog.text
 
     @responses.activate
+    @patch("scm_chainguard.sync.is_panos_compatible", return_value=(False, ["RSASSA-PSS not supported"]))
+    def test_incompatible_cert_skipped_before_import(self, mock_compat, sample_config, mock_auth, caplog):
+        """Incompatible certificates are skipped without making an API call."""
+        identity = IdentityClient(sample_config, mock_auth)
+        security = SecurityClient(sample_config, mock_auth)
+        with caplog.at_level(logging.WARNING, logger="scm_chainguard.sync"):
+            result = sync_certificates(
+                [_missing_cert()],
+                identity,
+                security,
+                sample_config,
+            )
+        assert len(result.skipped) == 1
+        assert len(result.imported) == 0
+        post_calls = [c for c in responses.calls if c.request.method == "POST"]
+        assert len(post_calls) == 0
+        assert "Skipping incompatible certificate" in caplog.text
+
+    @responses.activate
+    @patch("scm_chainguard.sync.is_panos_compatible", side_effect=Exception("parse error"))
+    def test_compat_check_parse_error_continues(self, mock_compat, sample_config, mock_auth):
+        """If compatibility check fails, import proceeds normally."""
+        responses.add(
+            responses.POST,
+            f"{IDENTITY_URL}/certificates:import",
+            json={"id": "new"},
+            status=200,
+        )
+        responses.add(
+            responses.GET,
+            SSL_SETTINGS_URL,
+            json={"data": [{"folder": "All", "ssl_decrypt": {"trusted_root_CA": []}}]},
+            status=200,
+        )
+        responses.add(responses.PUT, SSL_SETTINGS_URL, json={"@status": "success"}, status=200)
+
+        identity = IdentityClient(sample_config, mock_auth)
+        security = SecurityClient(sample_config, mock_auth)
+        result = sync_certificates(
+            [_missing_cert()],
+            identity,
+            security,
+            sample_config,
+        )
+        assert len(result.imported) == 1
+        assert len(result.skipped) == 0
+
+    @responses.activate
     def test_non_skip_error_logged_as_error(self, sample_config, mock_auth, caplog):
         """Non-skip API errors are logged at ERROR level and added to failed list."""
         responses.add(
