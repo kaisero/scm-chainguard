@@ -26,6 +26,7 @@ class ScmAuthenticator:
         self._token: str | None = None
         self._expires_at: float = 0
         self._session = requests.Session()
+        self._session.verify = config.ssl_verify
 
     def close(self) -> None:
         self._session.close()

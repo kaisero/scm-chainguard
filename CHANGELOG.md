@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-04-19
+
+### Added
+
+- **PAN-OS 11.2 certificate compatibility check**: Certificates using algorithms unsupported by PAN-OS 11.2 SSL/TLS Decryption (RSASSA-PSS, EdDSA/Ed25519/Ed448, non-NIST curves, DSA) are now automatically skipped during sync with a clear warning log and audit trail. The check runs client-side before the API call, avoiding unnecessary import failures.
+- **`--no-verify-ssl` global CLI flag**: Disables SSL certificate verification for all HTTP requests (CCADB and SCM API). Useful in environments behind TLS-intercepting proxies or upstream firewalls that inject self-signed certificates into the chain.
+
+### Fixed
+
+- **Snippet field leaking into SSL settings PUT payload**: The `_put_settings()` method now sends only `folder` and `ssl_decrypt` fields (explicit allowlist) instead of echoing the entire GET response, which included metadata fields like `snippet: "default"` that could cause the SCM API to misinterpret the request scope.
+- **Truncated error messages from SCM API**: `extract_error_message()` now includes all detail fields from API error responses (e.g., `errorType`, `code`, `path`) as `key=value` pairs, providing full context instead of only the `message` field. This fixes truncated errors like `"Node cannot be deleted because of references from"` where the referencing context was previously discarded.
+
 ## [0.1.2] - 2026-04-18
 
 ### Fixed

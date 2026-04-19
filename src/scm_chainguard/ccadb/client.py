@@ -16,9 +16,10 @@ DECADES = ("20000", "20100", "20200")
 class CcadbClient:
     """Downloads CCADB CSV data over HTTP."""
 
-    def __init__(self, timeout: int = 120):
+    def __init__(self, timeout: int = 120, verify: bool = True):
         self._timeout = timeout
         self._session = requests.Session()
+        self._session.verify = verify
 
     def close(self) -> None:
         self._session.close()

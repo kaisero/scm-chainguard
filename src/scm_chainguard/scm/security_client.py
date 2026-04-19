@@ -28,6 +28,7 @@ class SecurityClient:
         self._config = config
         self._auth = auth
         self._session = requests.Session()
+        self._session.verify = config.ssl_verify
 
     def close(self) -> None:
         self._session.close()
@@ -67,10 +68,15 @@ class SecurityClient:
     def _put_settings(self, settings: dict) -> None:
         """PUT updated settings, raising SecurityError with full detail on failure."""
         url = f"{self._config.security_url}/ssl-decryption-settings"
-        logger.debug("PUT %s payload=%s", url, settings)
+        # Only send fields the API expects — strip metadata (snippet, id, etc.) from the GET response
+        payload = {
+            "folder": settings["folder"],
+            "ssl_decrypt": settings["ssl_decrypt"],
+        }
+        logger.debug("PUT %s payload=%s", url, payload)
         resp = self._session.put(
             url,
-            json=settings,
+            json=payload,
             headers=self._auth.bearer_headers(),
             timeout=self._config.request_timeout,
         )
