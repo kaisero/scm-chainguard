@@ -43,6 +43,11 @@ def main(
         "--log-file",
         help="Write logs to file.",
     ),
+    no_verify_ssl: bool = typer.Option(
+        False,
+        "--no-verify-ssl",
+        help="Disable SSL certificate verification (for environments behind TLS-intercepting proxies).",
+    ),
     version: bool | None = typer.Option(
         None,
         "--version",
@@ -56,14 +61,20 @@ def main(
     ctx.ensure_object(dict)
     ctx.obj["config_path"] = config
     ctx.obj["debug"] = debug
+    ctx.obj["no_verify_ssl"] = no_verify_ssl
 
 
 def _get_config(ctx: typer.Context) -> ScmConfig:
+    from dataclasses import replace
+
     try:
-        return load_config(ctx.obj.get("config_path"))
+        cfg = load_config(ctx.obj.get("config_path"))
     except ConfigError as e:
         typer.echo(f"Configuration error: {e}", err=True)
         raise typer.Exit(1)
+    if ctx.obj.get("no_verify_ssl"):
+        cfg = replace(cfg, ssl_verify=False)
+    return cfg
 
 
 @app.command()
