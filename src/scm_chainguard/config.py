@@ -27,6 +27,7 @@ class ScmConfig:
     ssl_settings_folder: str = "All"
     output_dir: str = "./output"
     request_timeout: int = 120
+    ssl_verify: bool = True
 
     @property
     def identity_url(self) -> str:

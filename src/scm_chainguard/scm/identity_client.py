@@ -39,6 +39,7 @@ class IdentityClient:
         self._config = config
         self._auth = auth
         self._session = requests.Session()
+        self._session.verify = config.ssl_verify
 
     def close(self) -> None:
         self._session.close()

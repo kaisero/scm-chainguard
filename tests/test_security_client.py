@@ -12,6 +12,7 @@ SAMPLE_SETTINGS = {
     "data": [
         {
             "folder": "All",
+            "snippet": "default",
             "ssl_decrypt": {
                 "trusted_root_CA": ["existing-cert"],
                 "forward_trust_certificate": {"rsa": "test"},
@@ -62,6 +63,8 @@ class TestAddTrustedRootCas:
         trusted = body["ssl_decrypt"]["trusted_root_CA"]
         assert "existing-cert" in trusted
         assert "new-cert-1" in trusted
+        # Snippet from GET response must NOT leak into PUT
+        assert "snippet" not in body
 
     @responses.activate
     def test_idempotent(self, sample_config, mock_auth):
@@ -118,6 +121,8 @@ class TestRemoveTrustedRootCas:
         body = json.loads(responses.calls[1].request.body)
         trusted = body["ssl_decrypt"]["trusted_root_CA"]
         assert "existing-cert" not in trusted
+        # Snippet from GET response must NOT leak into PUT
+        assert "snippet" not in body
 
     @responses.activate
     def test_no_match_skips_put(self, sample_config, mock_auth):

@@ -8,6 +8,7 @@ from scm_chainguard.cert_utils import cert_import_name, is_cert_expired
 from scm_chainguard.config import ScmConfig
 from scm_chainguard.logging_setup import get_audit_logger
 from scm_chainguard.models import LocalCertificate, SyncResult
+from scm_chainguard.panos_compat import is_panos_compatible
 from scm_chainguard.scm.identity_client import (
     CertificateImportError,
     ConflictError,
@@ -67,6 +68,18 @@ def sync_certificates(
                 continue
         except Exception:
             logger.debug("Could not check expiry for %r, proceeding with import", name)
+
+        # Pre-check: skip certificates incompatible with PAN-OS 11.2 SSL/TLS decryption
+        try:
+            compatible, reasons = is_panos_compatible(cert.pem)
+            if not compatible:
+                reason_str = "; ".join(reasons)
+                logger.warning("Skipping incompatible certificate %r: %s", name, reason_str)
+                audit.info("AUDIT: IMPORT cert=%r status=skipped reason=panos_incompatible details=%r", name, reason_str)
+                result.skipped.append(name)
+                continue
+        except Exception:
+            logger.debug("Could not check PAN-OS compatibility for %r, proceeding with import", name)
 
         if dry_run:
             audit.info(

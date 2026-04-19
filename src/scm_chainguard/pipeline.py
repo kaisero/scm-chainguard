@@ -46,7 +46,7 @@ def run_fetch(
     output = Path(config.output_dir)
     roots_dir = output / "roots"
 
-    ccadb = CcadbClient(timeout=config.request_timeout)
+    ccadb = CcadbClient(timeout=config.request_timeout, verify=config.ssl_verify)
 
     metadata_csv = ccadb.download_metadata_csv()
     roots, intermediates = parse_metadata(metadata_csv, include_intermediates, trust_store=trust_store)
@@ -295,7 +295,7 @@ def run_revoke(
     result = CleanupResult(dry_run=dry_run)
 
     # 1. Fetch distrusted fingerprints from CCADB
-    ccadb = CcadbClient(timeout=config.request_timeout)
+    ccadb = CcadbClient(timeout=config.request_timeout, verify=config.ssl_verify)
     metadata_csv = ccadb.download_metadata_csv()
     distrusted = collect_distrusted_fingerprints(metadata_csv, trust_store)
     if not distrusted:
