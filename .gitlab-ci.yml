@@ -57,5 +57,5 @@ mirror-to-github:
   script:
     - git clone --mirror "$CI_REPOSITORY_URL" repo.git
     - cd repo.git
-    - git remote add github "https://oauth2:${GITHUB_PAT}@github.com:kaisero/scm-chainguard.git"
+    - git remote add github "https://oauth2:${GITHUB_PAT}@github.com/kaisero/scm-chainguard.git"
     - git push github --mirror
